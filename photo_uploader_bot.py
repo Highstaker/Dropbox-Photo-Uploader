@@ -8,7 +8,7 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 2, 0)
+VERSION_NUMBER = (0, 2, 1)
 
 ###############
 #####PARAMS#########
@@ -25,7 +25,7 @@ EN_LANG_BUTTON = "Bot language:🇬🇧 EN"
 RU_LANG_BUTTON = "Язык бота:🇷🇺 RU"
 
 START_MESSAGE = "Welcome! Type /help to get help."
-HELP_MESSAGE = "1"
+HELP_MESSAGE = {"EN" : "Help message", "RU": "Файл помощи"}
 ABOUT_MESSAGE = "2"
 OTHER_BOTS_MESSAGE = "3"
 
@@ -70,7 +70,7 @@ class UploaderBot(object):
 	def assignBotLanguage(self,chat_id,language):
 		"""
 		Assigns bot language to a subscribers list and saves to disk
-		:return:
+		:return: None
 		"""
 		self.h_subscribers.set_param(chat_id=chat_id,param="lang",value=language)
 
@@ -80,42 +80,52 @@ class UploaderBot(object):
 		message = Message.text
 		chat_id = Message.chat_id
 		subs = self.h_subscribers
-		lS = LanguageSupport(chat_id).languageSupport
-
-		user_folder_token = hex(getrandbits(128))[2:]
 
 		# try initializing user. If it exists, ignore (no forcing).
+		user_folder_token = hex(getrandbits(128))[2:]
 		subs.init_user(chat_id, params={"folder_token": user_folder_token})
+
+		# language support class for convenience
+		print("lang:", subs.get_param(chat_id=chat_id, param="lang"))#debug
+		LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
+		lS = LS.languageSupport
+		MMKM = lS(MAIN_MENU_KEY_MARKUP)
 
 		if message == "/start":
 			bot.sendMessage(chat_id=chat_id
 				,message=lS(START_MESSAGE)
-				,key_markup=MAIN_MENU_KEY_MARKUP
+				,key_markup=MMKM
 				)
 		elif message == "/help" or message == lS(HELP_BUTTON):
 			bot.sendMessage(chat_id=chat_id
 				,message=lS(HELP_MESSAGE)
-				,key_markup=MAIN_MENU_KEY_MARKUP
+				,key_markup=MMKM
 				)
 		elif message == "/about" or message == lS(ABOUT_BUTTON):
 			bot.sendMessage(chat_id=chat_id
 				,message=lS(ABOUT_MESSAGE)
-				,key_markup=MAIN_MENU_KEY_MARKUP
+				,key_markup=MMKM
 				)
 		elif message == "/otherbots" or message == lS(OTHER_BOTS_BUTTON):
 			bot.sendMessage(chat_id=chat_id
 				,message=lS(OTHER_BOTS_MESSAGE)
-				,key_markup=MAIN_MENU_KEY_MARKUP
+				,key_markup=MMKM
 				)
 		elif message == RU_LANG_BUTTON:
 			self.assignBotLanguage(chat_id,'RU')
+			LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
+			key_markup=LS.languageSupport(message=MAIN_MENU_KEY_MARKUP)
 			bot.sendMessage(chat_id=chat_id
 				,message="Сообщения бота будут отображаться на русском языке."
+				,key_markup=key_markup
 				)
 		elif message == EN_LANG_BUTTON:
 			self.assignBotLanguage(chat_id,'EN')
+			LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
+			key_markup=LS.languageSupport(message=MAIN_MENU_KEY_MARKUP)
 			bot.sendMessage(chat_id=chat_id
 				,message="Bot messages will be shown in English."
+				,key_markup=key_markup
 				)
 		elif Message.photo:
 			# process photo
@@ -138,6 +148,7 @@ class UploaderBot(object):
 		else:
 			bot.sendMessage(chat_id=chat_id
 				,message="Unknown command!"
+				,key_markup=MMKM
 				)
 
 

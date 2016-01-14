@@ -3,28 +3,31 @@
 
 class LanguageSupport(object):
 	"""docstring for LanguageSupport"""
-	def __init__(self, chat_id):
+	def __init__(self, lang):
 		super(LanguageSupport, self).__init__()
-		self.chat_id = chat_id
+		self.lang = lang
 
-	def languageSupport(self,message):
-		'''
+	def languageSupport(self, message):
+		"""
 		Returns a message depending on a language chosen by user
-		'''
-		chat_id = self.chat_id
-		if isinstance(message,str):
+		:param message:
+		"""
+		lang = self.lang
+		if isinstance(message, str):
 			result = message
-		elif isinstance(message,dict):
+		elif isinstance(message, dict):
 			try:
-				result = message[self.subscribers[chat_id][0]]
+				result = message[lang]
 			except:
+				print("could not find langauge")#debug
 				result = message["EN"]
 		elif isinstance(message,list):
-			#could be a key markup
+			# could be a key markup
 			result = list(message)
 			for n,i in enumerate(message):
 				result[n] = self.languageSupport(i)
 		else:
-			result = " "
-			
+			result = ""
+
+		print("languageSupport result:", result)#debug
 		return result

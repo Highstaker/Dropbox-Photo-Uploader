@@ -9,8 +9,6 @@ import sys
 from time import sleep
 
 #if a connection is lost and getUpdates takes too long, an error is raised
-from languagesupport import LanguageSupport
-
 socket.setdefaulttimeout(30)
 
 logging.basicConfig(format = u'[%(asctime)s] %(filename)s[LINE:%(lineno)d]# %(levelname)-8s  %(message)s', 
@@ -75,8 +73,6 @@ class telegramHigh():
 	def sendMessage(self,chat_id,message,key_markup="SAME",preview=True,markdown=False):
 		logging.warning("Replying to " + str(chat_id) + ": " + message)
 		fulltext = self.breakLongMessage(message)
-		lS = LanguageSupport(chat_id)
-		key_markup = lS.languageSupport(key_markup)
 		for text in fulltext:
 			#iterating over parts of a long split message
 			while True:
