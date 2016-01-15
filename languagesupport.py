@@ -19,7 +19,6 @@ class LanguageSupport(object):
 			try:
 				result = message[lang]
 			except:
-				print("could not find langauge")#debug
 				result = message["EN"]
 		elif isinstance(message,list):
 			# could be a key markup
@@ -29,5 +28,4 @@ class LanguageSupport(object):
 		else:
 			result = ""
 
-		print("languageSupport result:", result)#debug
 		return result

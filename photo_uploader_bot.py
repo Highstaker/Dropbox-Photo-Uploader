@@ -1,6 +1,10 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from queue import Queue
+from threading import Thread
+from time import sleep
+
 import dropbox
 from random import getrandbits
 from os import path
@@ -8,7 +12,7 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 2, 2)
+VERSION_NUMBER = (0, 3, 0)
 
 ###############
 #####PARAMS#########
@@ -63,19 +67,78 @@ with open(path.join(path.dirname(path.realpath(__file__)), DB_STORAGE_LINK_FILEN
 class UploaderBot(object):
 	"""docstring for UploaderBot"""
 
+	photoDownloadUpload_Daemon_process = None
+
 	def __init__(self):
 		super(UploaderBot, self).__init__()
 		self.bot = telegramHigh(BOT_TOKEN)
 		self.h_subscribers = SubscribersHandler("/tmp","dropbox_photo_uploader_subscribers.save",INITIAL_SUBSCRIBER_PARAMS)
 		self.dbx = dropbox.Dropbox(DB_TOKEN)
-		
+		self.thread_keep_alive_flag = True  # a flag. When false, the sender thread terminates
+
+		self.uploader_queue = Queue()
+
 	def start(self):
 		while True:
 			try:
 				self.bot.echo(processingFunction=self.processUpdate)
+				self.launch_photoDownloadUpload_Daemon()
+				sleep(0.1)
 			except KeyboardInterrupt:
 				print("Terminated by user!")
+				self.thread_keep_alive_flag = False
 				break
+
+	def launch_photoDownloadUpload_Daemon(self):
+		def launch_thread():
+			self.photoDownloadUpload_Daemon_process = t = Thread(target=self.photoDownloadUpload_Daemon,
+															 args=(self.uploader_queue,)
+															 )
+			t.start()
+
+		try:
+			if not self.photoDownloadUpload_Daemon_process.isAlive:
+				#if the thread is suddenly dead - restart it
+				launch_thread()
+		except AttributeError:
+			# in the beginning there is no variable with process. Create it.
+			launch_thread()
+
+	def photoDownloadUpload_Daemon(self, queue):
+		def photoDownloadUpload(bot, u, chat_id, message_id, custom_filepath, DB_folder_name):
+			# download photo to temporary folder. Save a path to the file (this one has extension)
+			while True:
+				try:
+					file_ext = bot.downloadPhoto(u,custom_filepath=custom_filepath)
+					break
+				except:
+					sleep(5)
+					pass
+
+			# upload to dropbox
+			while True:
+				try:
+					self.dbx.files_upload(
+					open(custom_filepath+file_ext, 'rb')  # open file
+					,"/" + DB_folder_name + "/" + path.basename(custom_filepath) + file_ext  # set path in dropbox
+					,autorename=True
+					)
+					break
+				except:
+					sleep(5)
+					pass
+
+			# confirmation message
+			bot.sendMessage(chat_id=chat_id
+							, message="Photo uploaded!"
+							, reply_to=message_id
+							)
+		while self.thread_keep_alive_flag:
+			if not queue.empty():
+				kwargs = queue.get()
+				photoDownloadUpload(**kwargs)
+				sleep(0.1)
+
 
 	def assignBotLanguage(self,chat_id,language):
 		"""
@@ -100,7 +163,6 @@ class UploaderBot(object):
 		subs.init_user(chat_id, params={"folder_token": user_folder_token})
 
 		# language support class for convenience
-		print("lang:", subs.get_param(chat_id=chat_id, param="lang"))#debug
 		LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
 		lS = LS.languageSupport
 		MMKM = lS(MAIN_MENU_KEY_MARKUP)
@@ -156,20 +218,14 @@ class UploaderBot(object):
 			file_name = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 			# create a full filepath without extension
 			custom_filepath = path.join("/tmp",DB_folder_name,file_name)
-			# download photo to temporary folder. Save a path to the file (this one has extension)
-			file_ext = bot.downloadPhoto(u,custom_filepath=custom_filepath)
 
-			# upload to dropbox
-			self.dbx.files_upload(
-					open(custom_filepath+file_ext, 'rb')  # open file
-					,"/" + DB_folder_name + "/" + path.basename(custom_filepath) + file_ext  # set path in dropbox
-					,autorename=True
+			self.uploader_queue.put(
+					dict(bot=bot, u=u, chat_id=chat_id,
+						 message_id=message_id,
+						 custom_filepath=custom_filepath,
+						 DB_folder_name=DB_folder_name)
 			)
 
-			bot.sendMessage(chat_id=chat_id
-							, message="Photo uploaded!"
-							, reply_to=message_id
-							)
 
 		else:
 			bot.sendMessage(chat_id=chat_id
