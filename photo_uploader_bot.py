@@ -8,30 +8,36 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 2, 1)
+VERSION_NUMBER = (0, 2, 2)
 
 ###############
 #####PARAMS#########
 ###############
 
-INITIAL_SUBSCRIBER_PARAMS = {"lang":"EN", #bot's langauge
-"folder_token" : "" #a unique token generated for each user. Is used for a dropbox folder name for that user.
+INITIAL_SUBSCRIBER_PARAMS = {"lang":"EN"  # bot's langauge
+,"folder_token" : ""  # a unique token generated for each user. Is used for a dropbox folder name for that user.
 }
 
 HELP_BUTTON = {"EN" : "⁉️" + "Help", "RU": "⁉️" + "Помощь"}
 ABOUT_BUTTON = {"EN" : "ℹ️ About", "RU": "ℹ️ О программе"}
 OTHER_BOTS_BUTTON = {"EN":"👾 My other bots", "RU": "👾 Другие мои боты"}
+DB_STORAGE_LINK_BUTTON = {"EN": "Get Link to photos", "RU": "Ссылка на фоты"}
 EN_LANG_BUTTON = "Bot language:🇬🇧 EN"
 RU_LANG_BUTTON = "Язык бота:🇷🇺 RU"
 
 START_MESSAGE = "Welcome! Type /help to get help."
 HELP_MESSAGE = {"EN" : "Help message", "RU": "Файл помощи"}
+DB_STORAGE_LINK_MESSAGE = {"EN": """The link to the photo storage: %s
+Your folder is %s
+"""
+}
 ABOUT_MESSAGE = "2"
 OTHER_BOTS_MESSAGE = "3"
 
 MAIN_MENU_KEY_MARKUP = [
-[HELP_BUTTON,ABOUT_BUTTON,OTHER_BOTS_BUTTON]
-,[EN_LANG_BUTTON,RU_LANG_BUTTON]
+[DB_STORAGE_LINK_BUTTON],
+[HELP_BUTTON,ABOUT_BUTTON,OTHER_BOTS_BUTTON],
+[EN_LANG_BUTTON,RU_LANG_BUTTON]
 ]
 
 #################
@@ -45,6 +51,10 @@ with open(path.join(path.dirname(path.realpath(__file__)), DB_TOKEN_FILENAME),'r
 BOT_TOKEN_FILENAME = "bot_token"
 with open(path.join(path.dirname(path.realpath(__file__)), BOT_TOKEN_FILENAME),'r') as f:
 	BOT_TOKEN = f.read().replace("\n","")
+
+DB_STORAGE_LINK_FILENAME = "DB_shared_folder"
+with open(path.join(path.dirname(path.realpath(__file__)), DB_STORAGE_LINK_FILENAME),'r') as f:
+	DB_STORAGE_PUBLIC_LINK = f.read().replace("\n","")
 
 ##################
 ######MAIN CLASS##
@@ -78,11 +88,15 @@ class UploaderBot(object):
 		bot = self.bot
 		Message = u.message
 		message = Message.text
+		message_id = Message. message_id
 		chat_id = Message.chat_id
 		subs = self.h_subscribers
 
 		# try initializing user. If it exists, ignore (no forcing).
 		user_folder_token = hex(getrandbits(128))[2:]
+		while user_folder_token in [subs.subscribers[chatid]['folder_token'] for chatid in subs.subscribers.keys()]:
+			# it is highly improbable, but if suddenly the folder token is generated - try again!
+			user_folder_token = hex(getrandbits(128))[2:]
 		subs.init_user(chat_id, params={"folder_token": user_folder_token})
 
 		# language support class for convenience
@@ -93,39 +107,45 @@ class UploaderBot(object):
 
 		if message == "/start":
 			bot.sendMessage(chat_id=chat_id
-				,message=lS(START_MESSAGE)
-				,key_markup=MMKM
+				, message=lS(START_MESSAGE)
+				, key_markup=MMKM
 				)
 		elif message == "/help" or message == lS(HELP_BUTTON):
 			bot.sendMessage(chat_id=chat_id
-				,message=lS(HELP_MESSAGE)
-				,key_markup=MMKM
+				, message=lS(HELP_MESSAGE)
+				, key_markup=MMKM
 				)
 		elif message == "/about" or message == lS(ABOUT_BUTTON):
 			bot.sendMessage(chat_id=chat_id
-				,message=lS(ABOUT_MESSAGE)
-				,key_markup=MMKM
+				, message=lS(ABOUT_MESSAGE)
+				, key_markup=MMKM
 				)
 		elif message == "/otherbots" or message == lS(OTHER_BOTS_BUTTON):
 			bot.sendMessage(chat_id=chat_id
-				,message=lS(OTHER_BOTS_MESSAGE)
-				,key_markup=MMKM
+				, message=lS(OTHER_BOTS_MESSAGE)
+				, key_markup=MMKM
+				)
+		elif message == "/dblink" or message == lS(DB_STORAGE_LINK_BUTTON):
+			bot.sendMessage(chat_id=chat_id
+				, message=lS(DB_STORAGE_LINK_MESSAGE)
+						% (DB_STORAGE_PUBLIC_LINK, subs.get_param(chat_id=chat_id, param="folder_token"))
+				, key_markup=MMKM
 				)
 		elif message == RU_LANG_BUTTON:
 			self.assignBotLanguage(chat_id,'RU')
 			LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
 			key_markup=LS.languageSupport(message=MAIN_MENU_KEY_MARKUP)
 			bot.sendMessage(chat_id=chat_id
-				,message="Сообщения бота будут отображаться на русском языке."
-				,key_markup=key_markup
+				, message="Сообщения бота будут отображаться на русском языке."
+				, key_markup=key_markup
 				)
 		elif message == EN_LANG_BUTTON:
 			self.assignBotLanguage(chat_id,'EN')
 			LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
 			key_markup=LS.languageSupport(message=MAIN_MENU_KEY_MARKUP)
 			bot.sendMessage(chat_id=chat_id
-				,message="Bot messages will be shown in English."
-				,key_markup=key_markup
+				, message="Bot messages will be shown in English."
+				, key_markup=key_markup
 				)
 		elif Message.photo:
 			# process photo
@@ -145,20 +165,18 @@ class UploaderBot(object):
 					,"/" + DB_folder_name + "/" + path.basename(custom_filepath) + file_ext  # set path in dropbox
 					,autorename=True
 			)
+
+			bot.sendMessage(chat_id=chat_id
+							, message="Photo uploaded!"
+							, reply_to=message_id
+							)
+
 		else:
 			bot.sendMessage(chat_id=chat_id
 				,message="Unknown command!"
 				,key_markup=MMKM
 				)
 
-
-	# def echo(self):
-	# 	bot = self.bot
-
-	# 	upd = bot.getUpdates()
-
-	# 	for u in upd:
-	# 		self.processUpdate(upd)
 
 def main():
 	bot = UploaderBot()

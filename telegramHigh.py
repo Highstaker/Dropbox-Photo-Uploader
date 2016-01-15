@@ -70,11 +70,11 @@ class telegramHigh():
 
 		return broken
 
-	def sendMessage(self,chat_id,message,key_markup="SAME",preview=True,markdown=False):
+	def sendMessage(self,chat_id,message,key_markup="SAME",preview=True,markdown=False,reply_to=None):
 		logging.warning("Replying to " + str(chat_id) + ": " + message)
 		fulltext = self.breakLongMessage(message)
 		for text in fulltext:
-			#iterating over parts of a long split message
+			# iterating over parts of a long split message
 			while True:
 				try:
 					if text:
@@ -84,7 +84,8 @@ class telegramHigh():
 							parse_mode='Markdown' if markdown else None,
 							disable_web_page_preview=(not preview),
 							reply_markup=(telegram.ReplyKeyboardMarkup(key_markup) if key_markup != "SAME" else None) if key_markup else telegram.ReplyKeyboardHide()
-							)
+							,reply_to_message_id=reply_to
+											)
 				except Exception as e:
 					if "Message is too long" in str(e):
 						self.sendMessage(chat_id=chat_id
