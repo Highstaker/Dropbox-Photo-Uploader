@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
+import os
 from datetime import datetime
 from queue import Queue
 from threading import Thread
@@ -12,7 +13,7 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 3, 1)
+VERSION_NUMBER = (0, 3, 2)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -130,11 +131,13 @@ class UploaderBot(object):
 					sleep(5)
 					pass
 
+			full_filename = custom_filepath+file_ext
+
 			# upload to dropbox
 			while True:
 				try:
 					self.dbx.files_upload(
-					open(custom_filepath+file_ext, 'rb')  # open file
+					open(full_filename, 'rb')  # open file
 					,"/" + DB_folder_name + "/" + path.basename(custom_filepath) + file_ext  # set path in dropbox
 					,autorename=True
 					)
@@ -148,6 +151,9 @@ class UploaderBot(object):
 							, message="Photo uploaded!"
 							, reply_to=message_id
 							)
+
+			os.remove(full_filename)
+
 		while self.thread_keep_alive_flag:
 			if not queue.empty():
 				kwargs = queue.get()
