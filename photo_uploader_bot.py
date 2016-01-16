@@ -12,7 +12,10 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 3, 0)
+VERSION_NUMBER = (0, 3, 1)
+
+# The folder containing the script itself
+SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
 
 ###############
 #####PARAMS#########
@@ -49,16 +52,28 @@ MAIN_MENU_KEY_MARKUP = [
 #################
 
 DB_TOKEN_FILENAME = "DB_token"
-with open(path.join(path.dirname(path.realpath(__file__)), DB_TOKEN_FILENAME),'r') as f:
-	DB_TOKEN = f.read().replace("\n", "")
+if path.isfile(DB_TOKEN_FILENAME):
+	with open(path.join(SCRIPT_FOLDER, DB_TOKEN_FILENAME),'r') as f:
+		DB_TOKEN = f.read().replace("\n", "")
+else:
+	print(DB_TOKEN_FILENAME + " doesn't exist! Create it, please!")
+	quit()
 
 BOT_TOKEN_FILENAME = "bot_token"
-with open(path.join(path.dirname(path.realpath(__file__)), BOT_TOKEN_FILENAME),'r') as f:
-	BOT_TOKEN = f.read().replace("\n","")
+if path.isfile(BOT_TOKEN_FILENAME):
+	with open(path.join(SCRIPT_FOLDER, BOT_TOKEN_FILENAME),'r') as f:
+		BOT_TOKEN = f.read().replace("\n","")
+else:
+	print(BOT_TOKEN_FILENAME + " doesn't exist! Create it, please!")
+	quit()
 
 DB_STORAGE_LINK_FILENAME = "DB_shared_folder"
-with open(path.join(path.dirname(path.realpath(__file__)), DB_STORAGE_LINK_FILENAME),'r') as f:
-	DB_STORAGE_PUBLIC_LINK = f.read().replace("\n","")
+if path.isfile(DB_STORAGE_LINK_FILENAME):
+	with open(path.join(SCRIPT_FOLDER, DB_STORAGE_LINK_FILENAME),'r') as f:
+		DB_STORAGE_PUBLIC_LINK = f.read().replace("\n","")
+else:
+	print(DB_STORAGE_LINK_FILENAME + " doesn't exist! Create it, please!")
+	quit()
 
 ##################
 ######MAIN CLASS##
@@ -72,7 +87,7 @@ class UploaderBot(object):
 	def __init__(self):
 		super(UploaderBot, self).__init__()
 		self.bot = telegramHigh(BOT_TOKEN)
-		self.h_subscribers = SubscribersHandler("/tmp","dropbox_photo_uploader_subscribers.save",INITIAL_SUBSCRIBER_PARAMS)
+		self.h_subscribers = SubscribersHandler(SCRIPT_FOLDER,"dropbox_photo_uploader_subscribers.save",INITIAL_SUBSCRIBER_PARAMS)
 		self.dbx = dropbox.Dropbox(DB_TOKEN)
 		self.thread_keep_alive_flag = True  # a flag. When false, the sender thread terminates
 
