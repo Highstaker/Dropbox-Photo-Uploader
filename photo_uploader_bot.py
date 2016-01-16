@@ -13,7 +13,7 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 
-VERSION_NUMBER = (0, 3, 2)
+VERSION_NUMBER = (0, 3, 3)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -121,7 +121,17 @@ class UploaderBot(object):
 			launch_thread()
 
 	def photoDownloadUpload_Daemon(self, queue):
-		def photoDownloadUpload(bot, u, chat_id, message_id, custom_filepath, DB_folder_name):
+		def photoDownloadUpload(bot, u, chat_id, message_id):
+
+			subs = self.h_subscribers
+			# get a hex-created folder name
+			DB_folder_name = subs.get_param(chat_id,"folder_token")
+			# name a file with a datestamp
+			file_name = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+			# create a full filepath without extension
+			custom_filepath = path.join("/tmp",DB_folder_name,file_name)
+
+			file_ext = ".jpg" # to avoid warning
 			# download photo to temporary folder. Save a path to the file (this one has extension)
 			while True:
 				try:
@@ -131,7 +141,7 @@ class UploaderBot(object):
 					sleep(5)
 					pass
 
-			full_filename = custom_filepath+file_ext
+			full_filename = custom_filepath + file_ext
 
 			# upload to dropbox
 			while True:
@@ -233,18 +243,10 @@ class UploaderBot(object):
 		elif Message.photo:
 			# process photo
 
-			# get a hex-created folder name
-			DB_folder_name = subs.get_param(chat_id,"folder_token")
-			# name a file with a datestamp
-			file_name = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-			# create a full filepath without extension
-			custom_filepath = path.join("/tmp",DB_folder_name,file_name)
-
 			self.uploader_queue.put(
 					dict(bot=bot, u=u, chat_id=chat_id,
 						 message_id=message_id,
-						 custom_filepath=custom_filepath,
-						 DB_folder_name=DB_folder_name)
+						 )
 			)
 
 
