@@ -11,9 +11,9 @@ class SubscribersHandler(object):
 
 	subscribers = dict()
 
-	def __init__(self, savefile_path, savefile_name, initial_params, from_file=True):
+	def __init__(self, savefile_name, initial_params, from_file=True):
 		super(SubscribersHandler, self).__init__()
-		self.subscribers_backup_filename = path.join(savefile_path, savefile_name)  # backup filename
+		self.subscribers_backup_filename = savefile_name  # backup filename
 		self.initial_params = initial_params  # a list of parameters to initialize a user with
 
 		if from_file:
@@ -67,15 +67,36 @@ class SubscribersHandler(object):
 		"""
 		return self.subscribers[chat_id][param]
 
-	def set_param(self, chat_id, param, value, save=True):
+	def set_param(self, chat_id, param, value, save=True, append=False):
 		"""
 		Sets the given parameter to a certain value
+		:param append: if False, the parameter is set to value. It True, the value is appended to the prarmeter (e.g. list)
 		:param chat_id: user's chat id number
-		:param param: a key of a parameter to be modifieded
+		:param param: a key of a parameter to be modified
 		:param value: value to set to a parameter
 		:param save: saves the subscribers list to file if True
 		:return: None
 		"""
-		self.subscribers[chat_id][param] = value
+		if append:
+			self.subscribers[chat_id][param] += value
+		else:
+			self.subscribers[chat_id][param] = value
 		if save:
 			self.saveSubscribers()
+
+	def pop_from_param(self,chat_id,param,index):
+		"""
+		Pops a value from a list, if it is a list. Does nothing if it is not.
+		:param chat_id: user's chat id number
+		:param param: a key of a parameter to be modified
+		:param index: index of a value to be removed
+		:return: the removed value. None if it was not a list/
+		"""
+		if isinstance(self.subscribers[chat_id][param],list):
+			try:
+				val = self.subscribers[chat_id][param].pop(index)
+				return val
+			except IndexError:
+				return None
+		else:
+			return None
