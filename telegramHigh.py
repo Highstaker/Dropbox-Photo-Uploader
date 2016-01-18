@@ -36,11 +36,10 @@ def dummyFunction(update=None):
 
 class telegramHigh():
 
-	LAST_UPDATE_ID = None
-
 	"""telegramHigh"""
 	def __init__(self, token):
 		super(telegramHigh, self).__init__()
+		self.LAST_UPDATE_ID = None
 		self.bot = telegram.Bot(token)
 
 	def breakLongMessage(self,msg):		

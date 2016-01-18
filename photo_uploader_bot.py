@@ -13,7 +13,7 @@ from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 
-VERSION_NUMBER = (0, 4, 0)
+VERSION_NUMBER = (0, 4, 1)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))

@@ -1,7 +1,6 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 import pickle
-from os import path
 import logging
 
 
@@ -9,10 +8,9 @@ import logging
 class SubscribersHandler(object):
 	"""docstring for SubscribersHandler"""
 
-	subscribers = dict()
-
 	def __init__(self, savefile_name, initial_params, from_file=True):
 		super(SubscribersHandler, self).__init__()
+		self.subscribers = dict()
 		self.subscribers_backup_filename = savefile_name  # backup filename
 		self.initial_params = initial_params  # a list of parameters to initialize a user with
 

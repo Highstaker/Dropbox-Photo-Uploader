@@ -17,31 +17,33 @@ class ListThreadedSaver(object):
 		self.mutex = threading.Lock()
 
 		#the list that will be modified and saved
-		self._main_list = []
+		self.__main_list = []
 
 		# try loading from file, if it exists
 		if load:
-			self._load_file()
+			self.__load_file()
 
-	def _load_file(self):
+	def __load_file(self):
 		"""
 		Load the file
 		:return: None
 		"""
 		try:
 			with open(self.filename, 'rb') as f:
-				self._main_list = pickle.load(f)
-				logging.warning(("self._main_list", self._main_list))
+				self.__main_list = pickle.load(f)
+				logging.warning(("self.__main_list", self.__main_list))
 		except FileNotFoundError:
 			logging.warning("List backup file %s not found. Starting with empty list!" % self.filename)
+		except EOFError:
+			logging.warning("Unexpected end of file while loading %s. Starting with empty list!" % self.filename)
 
-	def _save_file(self):
+	def __save_file(self):
 		"""
 		Saves list to file
 		:return: None
 		"""
 		with open(self.filename, 'wb') as f:
-			pickle.dump(self._main_list, f, pickle.HIGHEST_PROTOCOL)
+			pickle.dump(self.__main_list, f, pickle.HIGHEST_PROTOCOL)
 
 	def append_to_list(self, value, save=True):
 		"""
@@ -50,9 +52,9 @@ class ListThreadedSaver(object):
 		:return: None
 		"""
 		with self.mutex:
-			self._main_list.append(value)
+			self.__main_list.append(value)
 			if save:
-				self._save_file()
+				self.__save_file()
 
 	def pop_first(self, save=True):
 		"""
@@ -61,17 +63,17 @@ class ListThreadedSaver(object):
 		"""
 		with self.mutex:
 			try:
-				val = self._main_list.pop(0)
+				val = self.__main_list.pop(0)
 				if save:
-					self._save_file()
+					self.__save_file()
 			except IndexError:
 				val = None
 			return val
 
 	def list_generator(self):
 		"""
-		A generator that returns all elements of _main_list
+		A generator that returns all elements of __main_list
 		:return:
 		"""
-		for i in self._main_list:
+		for i in self.__main_list:
 			yield i
