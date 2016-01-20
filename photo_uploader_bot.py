@@ -108,16 +108,17 @@ class UploaderBot(object):
 		for param in self.queue_saver.list_generator():
 			self.uploader_queue.put(param)
 
-	def start(self):
-		while True:
-			try:
-				self.bot.echo(processingFunction=self.processUpdate)
-				self.launch_photoDownloadUpload_Daemon()
-				sleep(0.1)
-			except KeyboardInterrupt:
-				print("Terminated by user!")
-				self.thread_keep_alive_flag = False
-				break
+		#starts the main loop
+		self.bot.start(processingFunction=self.processUpdate,
+					periodicFunction=self.periodicFunction,
+					   termination_function=self.termination_function
+					   )
+
+	def periodicFunction(self):
+		self.launch_photoDownloadUpload_Daemon()
+
+	def termination_function(self):
+		self.thread_keep_alive_flag = False
 
 	def launch_photoDownloadUpload_Daemon(self):
 		def launch_thread():
@@ -274,7 +275,6 @@ class UploaderBot(object):
 
 def main():
 	bot = UploaderBot()
-	bot.start()
 
 if __name__ == '__main__':
 	main()

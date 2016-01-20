@@ -124,12 +124,12 @@ class telegramHigh:
 										 )
 					elif ("urlopen error" in str(e)) or ("timed out" in str(e)):
 						logging.error("Could not send message. Retrying! Error: " + str(
-							sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+								sys.exc_info()[-1].tb_lineno) + ": " + str(e))
 						sleep(3)
 						continue
 					else:
 						logging.error(
-							"Could not send message. Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+								"Could not send message. Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
 				break
 
 	def sendPic(self, chat_id, pic, caption=None):
@@ -150,7 +150,7 @@ class telegramHigh:
 				self.bot.sendPhoto(chat_id=chat_id, photo=pic, caption=caption)
 			except Exception as e:
 				logging.error(
-					"Could not send picture. Retrying! Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+						"Could not send picture. Retrying! Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
 				sleep(1)
 				continue
 			break
@@ -205,11 +205,21 @@ class telegramHigh:
 			logging.warning("No photo in this message", str(u))
 		return file_ext
 
-	def echo(self, processingFunction=dummyFunction, periodicFunction=dummyFunction):
-		bot = self.bot
+	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction, termination_function=dummyFunction, slp=0.1):
+		while True:
+			try:
+				# a function that is called regardless of updates' presence
+				periodicFunction()
+				self.updateProcessing(processingFunction=processingFunction)
+				sleep(slp)
+			except KeyboardInterrupt:
+				print("Terminated by user!")
+				termination_function()
+				break
 
-		periodicFunction()
+	def updateProcessing(self, processingFunction=dummyFunction):
 
+		# basically, messages sent to bot
 		updates = self.getUpdates()
 
 		# main message processing routine
@@ -217,6 +227,7 @@ class telegramHigh:
 			logging.warning("Received message: " + str(
 					update.message.chat_id) + " " + update.message.from_user.username + " " + update.message.text)
 
+			# a functions that processes updates, one by one
 			processingFunction(update)
 
 			# Updates global offset to get the new updates
