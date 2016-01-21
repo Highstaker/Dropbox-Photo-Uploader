@@ -6,6 +6,7 @@
 # +Is there a better way to avoid dummyFunction?
 # +Should I put MAX_CHARS_PER_MESSAGE as a static variable of telegramHigh class?
 # +Better ways of printing errors with lines.
+# +Is it readable to put single statements on same lines as in markup function?
 
 import logging
 import telegram
@@ -101,6 +102,11 @@ class telegramHigh:
 		:param reply_to: An id of an existing message. A sent message will be a reply to that message.
 		:return: None
 		"""
+		def markup(m):
+			if not m: return telegram.ReplyKeyboardHide()
+			elif m == "SAME": return None
+			else: return telegram.ReplyKeyboardMarkup(m)
+
 		logging.warning("Replying to " + str(chat_id) + ": " + message)
 		fulltext = self.breakLongMessage(message)
 		for text in fulltext:
@@ -110,18 +116,15 @@ class telegramHigh:
 					if text:
 						self.bot.sendChatAction(chat_id, telegram.ChatAction.TYPING)
 						self.bot.sendMessage(chat_id=chat_id,
-											 text=text,
-											 parse_mode='Markdown' if markdown else None,
-											 disable_web_page_preview=(not preview),
-											 reply_markup=(telegram.ReplyKeyboardMarkup(
-													 key_markup) if key_markup != "SAME" else None) if key_markup else telegram.ReplyKeyboardHide()
-											 , reply_to_message_id=reply_to
-											 )
+											text=text,
+											parse_mode='Markdown' if markdown else None,
+											disable_web_page_preview=(not preview),
+											reply_markup=markup(key_markup),
+											reply_to_message_id=reply_to
+											)
 				except Exception as e:
 					if "Message is too long" in str(e):
-						self.sendMessage(chat_id=chat_id
-										 , message="Error: Message is too long!"
-										 )
+						self.sendMessage(chat_id=chat_id, message="Error: Message is too long!")
 					elif ("urlopen error" in str(e)) or ("timed out" in str(e)):
 						logging.error("Could not send message. Retrying! Error: " + str(
 								sys.exc_info()[-1].tb_lineno) + ": " + str(e))
@@ -167,8 +170,8 @@ class telegramHigh:
 			try:
 				updates = self.bot.getUpdates(offset=self.LAST_UPDATE_ID)
 			except Exception as e:
-				logging.error(
-						"Could not read updates. Retrying! Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+				logging.error("Could not read updates. Retrying! Error: " +
+							str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
 				sleep(1)
 				continue
 			break
@@ -205,7 +208,8 @@ class telegramHigh:
 			logging.warning("No photo in this message", str(u))
 		return file_ext
 
-	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction, termination_function=dummyFunction, slp=0.1):
+	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction,
+			termination_function=dummyFunction, slp=0.1):
 		while True:
 			try:
 				# a function that is called regardless of updates' presence
