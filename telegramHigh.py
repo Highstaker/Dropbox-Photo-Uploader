@@ -7,6 +7,7 @@
 # +Should I put MAX_CHARS_PER_MESSAGE as a static variable of telegramHigh class?
 # +Better ways of printing errors with lines.
 # +Is it readable to put single statements on same lines as in markup function?
+# +Maybe merge downloadDocument and downloadPhoto
 
 import logging
 import telegram
@@ -55,6 +56,16 @@ class telegramHigh:
 		super(telegramHigh, self).__init__()
 		self.LAST_UPDATE_ID = None
 		self.bot = telegram.Bot(token)
+
+	@staticmethod
+	def isPhoto(update):
+		if update.message.photo: return True
+		else: return False
+
+	@staticmethod
+	def isDocument(update):
+		if update.message.document: return True
+		else: return False
 
 	@staticmethod
 	def breakLongMessage(msg):
@@ -177,6 +188,32 @@ class telegramHigh:
 			break
 		return updates
 
+	def downloadDocument(self, u, custom_filepath=None):
+		"""
+
+		:return:
+		"""
+		file_ext = ""
+		if self.isDocument(u):
+			file_id = u.message.document['file_id']
+			# getting a file by its ID
+			File = self.bot.getFile(file_id)
+			if custom_filepath:
+				# finding out the extension of an image file on Telegram server
+				file_name_with_path, file_ext = path.splitext(File.file_path)
+				# directory path to save image to
+				directory = path.dirname(custom_filepath)
+				# gluing together a filepath and extension, overriding one specified in arguments
+				custom_filepath = path.splitext(custom_filepath)[0] + file_ext
+				# create a directory if it doesn't exist
+				if directory:
+					makedirs(directory, exist_ok=True)
+			# download the file to a given directory
+			File.download(custom_path=custom_filepath)
+		else:
+			logging.warning("No file in this message", str(u))
+		return file_ext
+
 	def downloadPhoto(self, u, custom_filepath=None):
 		"""
 		Downloads a photo in a given update, if there is any.
@@ -187,7 +224,7 @@ class telegramHigh:
 		:return: file extension
 		"""
 		file_ext = ""
-		if u.message.photo:
+		if self.isPhoto(u):
 			# there are several photos in one message. The last one in the list is the one with highest resolution
 			file_id = u.message.photo[-1]['file_id']
 			# getting a file by its ID
