@@ -110,7 +110,6 @@ class UploaderBot(object):
 		#reload queue
 		for param in self.queue_saver.list_generator():
 			self.uploader_queue.put(param)
-			self.uploader_queue.put(param)
 
 		#starts the main loop
 		self.bot.start(processingFunction=self.processUpdate,
@@ -141,6 +140,8 @@ class UploaderBot(object):
 
 	def photoDownloadUpload_Daemon(self, queue):
 		def photoDownloadUpload(bot, update, chat_id, message_id):
+			print("Queue",queue.qsize())
+
 			subs = self.h_subscribers
 			# get a hex-created folder name
 			DB_folder_name = subs.get_param(chat_id,"folder_token")
@@ -271,6 +272,7 @@ class UploaderBot(object):
 				, key_markup=key_markup
 				)
 		elif bot.isPhoto(u):
+			print("Sending params to thread on message. photo")#debug
 			sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 		elif bot.isDocument(u):
 			# check supported file formats
@@ -286,6 +288,7 @@ class UploaderBot(object):
 				, reply_to=message_id
 				)
 			else:
+				print("Sending params to thread on message. Document")#debug
 				sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 		else:
 			bot.sendMessage(chat_id=chat_id
