@@ -7,7 +7,8 @@
 # +Should I put MAX_CHARS_PER_MESSAGE as a static variable of telegramHigh class?
 # +Better ways of printing errors with lines.
 # +Is it readable to put single statements on same lines as in markup function?
-# +Maybe merge downloadDocument and downloadPhoto
+# +Maybe merge downloadDocument and downloadPhoto with downloadFile?
+# +What should be made private? make downloadFile private?
 
 import logging
 import telegram
@@ -59,13 +60,19 @@ class telegramHigh:
 
 	@staticmethod
 	def isPhoto(update):
-		if update.message.photo: return True
-		else: return False
+		try:
+			if update.message.photo: return True
+			else: return False
+		except AttributeError:
+			return False
 
 	@staticmethod
 	def isDocument(update):
-		if update.message.document: return True
-		else: return False
+		try:
+			if update.message.document: return True
+			else: return False
+		except AttributeError:
+			return False
 
 	@staticmethod
 	def breakLongMessage(msg):
@@ -188,61 +195,64 @@ class telegramHigh:
 			break
 		return updates
 
-	def downloadDocument(self, u, custom_filepath=None):
+	def getFileID(self, update, photoIndex=-1):
+		if self.isPhoto(update):
+			file_id = update.message.photo[photoIndex]['file_id']
+		elif self.isDocument(update):
+			file_id = update.message.document['file_id']
+		else:
+			file_id = ""
+
+		return file_id
+
+	def getFile(self, file_id):
+		return self.bot.getFile(file_id)
+
+	def getFileExt(self, update, no_dot=False):
 		"""
 
+		:param update:
+		:return:
+		"""
+		file_id = self.getFileID(update)
+
+		File = self.getFile(file_id)
+		pth = File.file_path
+		file_ext = path.splitext(pth)[1]
+		if no_dot:
+			file_ext = file_ext.replace(".","")
+		return file_ext
+
+	def getFileSize(self, update):
+
+		file_id = self.getFileID(update)
+
+		File = self.getFile(file_id)
+		file_size = File['file_size']
+		return file_size
+
+	def downloadFile(self, file_id, custom_filepath=None):
+		"""
+
+		:param file_id:
 		:return:
 		"""
 		file_ext = ""
-		if self.isDocument(u):
-			file_id = u.message.document['file_id']
-			# getting a file by its ID
-			File = self.bot.getFile(file_id)
-			if custom_filepath:
-				# finding out the extension of an image file on Telegram server
-				file_name_with_path, file_ext = path.splitext(File.file_path)
-				# directory path to save image to
-				directory = path.dirname(custom_filepath)
-				# gluing together a filepath and extension, overriding one specified in arguments
-				custom_filepath = path.splitext(custom_filepath)[0] + file_ext
-				# create a directory if it doesn't exist
-				if directory:
-					makedirs(directory, exist_ok=True)
-			# download the file to a given directory
-			File.download(custom_path=custom_filepath)
-		else:
-			logging.warning("No file in this message", str(u))
-		return file_ext
 
-	def downloadPhoto(self, u, custom_filepath=None):
-		"""
-		Downloads a photo in a given update, if there is any.
-		:param custom_filepath: a path where the photo should be saved.
-		File extension is ignored as it is assigned based on file extension of picture in the received message.
-		If None, it will be saved to current folder, and a name is given based on filename in message metadata.
-		:param u: an update from getUpdates()
-		:return: file extension
-		"""
-		file_ext = ""
-		if self.isPhoto(u):
-			# there are several photos in one message. The last one in the list is the one with highest resolution
-			file_id = u.message.photo[-1]['file_id']
-			# getting a file by its ID
-			File = self.bot.getFile(file_id)
-			if custom_filepath:
-				# finding out the extension of an image file on Telegram server
-				file_name_with_path, file_ext = path.splitext(File.file_path)
-				# directory path to save image to
-				directory = path.dirname(custom_filepath)
-				# gluing together a filepath and extension, overriding one specified in arguments
-				custom_filepath = path.splitext(custom_filepath)[0] + file_ext
-				# create a directory if it doesn't exist
-				if directory:
-					makedirs(directory, exist_ok=True)
-			# download the file to a given directory
-			File.download(custom_path=custom_filepath)
-		else:
-			logging.warning("No photo in this message", str(u))
+		File = self.bot.getFile(file_id)
+		if custom_filepath:
+			# finding out the extension of an image file on Telegram server
+			file_name_with_path, file_ext = path.splitext(File.file_path)
+			# directory path to save image to
+			directory = path.dirname(custom_filepath)
+			# gluing together a filepath and extension, overriding one specified in arguments
+			custom_filepath = path.splitext(custom_filepath)[0] + file_ext
+			# create a directory if it doesn't exist
+			if directory:
+				makedirs(directory, exist_ok=True)
+		# download the file to a given directory
+		File.download(custom_path=custom_filepath)
+
 		return file_ext
 
 	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction,

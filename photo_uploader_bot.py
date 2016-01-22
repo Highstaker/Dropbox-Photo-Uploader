@@ -13,7 +13,7 @@ from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 
-VERSION_NUMBER = (0, 6, 0)
+VERSION_NUMBER = (0, 6, 1)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -25,6 +25,9 @@ SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
 INITIAL_SUBSCRIBER_PARAMS = {"lang":"EN"  # bot's langauge
 ,"folder_token" : ""  # a unique token generated for each user. Is used for a dropbox folder name for that user.
 }
+
+MAX_FILE_SIZE = 8*1024*1024
+SUPPORTED_FILE_FORMATS = ['jpg','jpeg','png','bmp']
 
 #############
 ####TEXTS####
@@ -107,6 +110,7 @@ class UploaderBot(object):
 		#reload queue
 		for param in self.queue_saver.list_generator():
 			self.uploader_queue.put(param)
+			self.uploader_queue.put(param)
 
 		#starts the main loop
 		self.bot.start(processingFunction=self.processUpdate,
@@ -136,7 +140,7 @@ class UploaderBot(object):
 			launch_thread()
 
 	def photoDownloadUpload_Daemon(self, queue):
-		def photoDownloadUpload(bot, u, chat_id, message_id):
+		def photoDownloadUpload(bot, update, chat_id, message_id):
 			subs = self.h_subscribers
 			# get a hex-created folder name
 			DB_folder_name = subs.get_param(chat_id,"folder_token")
@@ -145,11 +149,11 @@ class UploaderBot(object):
 			# create a full filepath without extension
 			custom_filepath = path.join("/tmp",DB_folder_name,file_name)
 
-			file_ext = ".jpg" # to avoid warning
+			file_ext = ".jpg"  # to avoid warning
 			# download photo to temporary folder. Save a path to the file (this one has extension)
 			while True:
 				try:
-					file_ext = bot.downloadPhoto(u,custom_filepath=custom_filepath)
+					file_ext = bot.downloadFile(bot.getFileID(update), custom_filepath=custom_filepath)
 					break
 				except:
 					sleep(5)
@@ -185,7 +189,7 @@ class UploaderBot(object):
 			if not queue.empty():
 				kwargs = queue.get()
 				photoDownloadUpload(**kwargs)
-				sleep(0.1)
+			sleep(0.1)
 
 	def assignBotLanguage(self,chat_id,language):
 		"""
@@ -195,10 +199,20 @@ class UploaderBot(object):
 		self.h_subscribers.set_param(chat_id=chat_id,param="lang",value=language)
 
 	def processUpdate(self,u):
+		def sendParamsToThread(**kwargs):
+			# process photo
+			thread_params = dict(bot=bot, update=u, chat_id=chat_id,
+						 message_id=message_id,
+						 )
+			# save params to file
+			self.queue_saver.append_to_list(thread_params, save=True)
+			# send params to Queue for thread to process
+			self.uploader_queue.put(thread_params)
+
 		bot = self.bot
 		Message = u.message
 		message = Message.text
-		message_id = Message. message_id
+		message_id = Message.message_id
 		chat_id = Message.chat_id
 		subs = self.h_subscribers
 
@@ -256,16 +270,23 @@ class UploaderBot(object):
 				, message="Bot messages will be shown in English."
 				, key_markup=key_markup
 				)
-		elif Message.photo:
-			# process photo
-			thread_params = dict(bot=bot, u=u, chat_id=chat_id,
-						 message_id=message_id,
-						 )
-			# save params to file
-			self.queue_saver.append_to_list(thread_params, save=True)
-			# send params to Queue for thread to process
-			self.uploader_queue.put(thread_params)
-
+		elif bot.isPhoto(u):
+			sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
+		elif bot.isDocument(u):
+			# check supported file formats
+			if not (bot.getFileExt(u,no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
+				bot.sendMessage(chat_id=chat_id
+				, message="Wrong file format. Supported formats are: %s" % ", ".join(SUPPORTED_FILE_FORMATS)
+				, reply_to=message_id
+				)
+			# limit filesize
+			elif bot.getFileSize(u) > MAX_FILE_SIZE:
+				bot.sendMessage(chat_id=chat_id
+				, message="File is too big. Maximum size is %.1f MB" % (MAX_FILE_SIZE/(1024**2))
+				, reply_to=message_id
+				)
+			else:
+				sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 		else:
 			bot.sendMessage(chat_id=chat_id
 				,message="Unknown command!"

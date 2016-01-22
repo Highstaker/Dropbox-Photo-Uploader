@@ -21,4 +21,10 @@ chat_id = u.message.chat_id
 print("u.message.document",u.message.document)
 print("u.message.document.file_size",u.message.document.file_size)
 
-bot.downloadDocument(u,custom_filepath='/tmp/001')
+# File = bot.bot.getFile(u.message.document['file_id'])
+# print("File ",File)
+# print("File size ",File["file_size"])
+
+print("bot.getFileExt(u)",bot.getFileExt(u,no_dot=True).lower())
+
+# bot.downloadDocument(u,custom_filepath='/tmp/001')
