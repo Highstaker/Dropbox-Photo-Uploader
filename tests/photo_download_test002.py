@@ -20,4 +20,4 @@ chat_id = u.message.chat_id
 
 print("u.message.photo",u.message.photo)
 
-bot.downloadPhoto(u,custom_filepath='001.tiff')
+#bot.downloadPhoto(u,custom_filepath='001.tiff')

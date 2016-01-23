@@ -205,40 +205,71 @@ class telegramHigh:
 
 		return file_id
 
-	def getFile(self, file_id):
+	def getFileByID(self, file_id):
 		return self.bot.getFile(file_id)
+
+	def getFileByUpdate(self, update, photoIndex=-1):
+		file_id = self.getFileID(update, photoIndex)
+		return self.getFileByID(file_id)
+
+	def getFullPath(self, update, photoIndex=-1):
+		File = self.getFileByUpdate(update, photoIndex)
+		pth = File.file_path
+		return pth
+
+	def getFullName(self, update, photoIndex=-1):
+		pth = self.getFullPath(update)
+		full_name = path.basename(pth)
+		return full_name
+
+	def getURLFileName(self, update, photoIndex=-1):
+		full_name = self.getFullName(update)
+		file_name = path.splitext(full_name)[0]
+		return file_name
 
 	def getFileExt(self, update, no_dot=False):
 		"""
 
+		:param no_dot:
 		:param update:
 		:return:
 		"""
-		file_id = self.getFileID(update)
-
-		File = self.getFile(file_id)
-		pth = File.file_path
+		pth = self.getFullPath(update)
 		file_ext = path.splitext(pth)[1]
 		if no_dot:
-			file_ext = file_ext.replace(".","")
+			file_ext = file_ext.replace(".", "")
 		return file_ext
+
+	@staticmethod
+	def getDocumentFileName(update):
+		"""
+		Returns a filename (with extension) of a document in a message.
+		:param update: an update object containig a message
+		:return: a filename (with extension). Or empty string if update is not a document
+		"""
+		try:
+			document = update.message.document
+			if document:
+				return document["file_name"]
+			else:
+				return ""
+		except AttributeError:
+			return ""
 
 	def getFileSize(self, update):
 
 		file_id = self.getFileID(update)
-
-		File = self.getFile(file_id)
+		File = self.getFileByID(file_id)
 		file_size = File['file_size']
 		return file_size
 
 	def downloadFile(self, file_id, custom_filepath=None):
 		"""
 
+		:param custom_filepath:
 		:param file_id:
 		:return:
 		"""
-		file_ext = ""
-
 		File = self.bot.getFile(file_id)
 		if custom_filepath:
 			# finding out the extension of an image file on Telegram server
@@ -252,8 +283,6 @@ class telegramHigh:
 				makedirs(directory, exist_ok=True)
 		# download the file to a given directory
 		File.download(custom_path=custom_filepath)
-
-		return file_ext
 
 	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction,
 			termination_function=dummyFunction, slp=0.1):

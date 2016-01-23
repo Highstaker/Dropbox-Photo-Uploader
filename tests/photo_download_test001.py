@@ -29,5 +29,5 @@ if u.message.photo:
 
 	rand_dir = hex(getrandbits(128))[2:]
 	makedirs(path.join('/tmp',rand_dir),exist_ok=True)
-	File.download(custom_path=path.join('/tmp',rand_dir))
+	# File.download(custom_path=path.join('/tmp',rand_dir))
 

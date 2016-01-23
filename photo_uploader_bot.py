@@ -13,7 +13,7 @@ from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 
-VERSION_NUMBER = (0, 7, 2)
+VERSION_NUMBER = (0, 7, 3)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -140,35 +140,42 @@ class UploaderBot(object):
 
 	def photoDownloadUpload_Daemon(self, queue):
 		def photoDownloadUpload(bot, update, chat_id, message_id):
-			print("Queue",queue.qsize())
+			print("Queue size",queue.qsize())#debug
 
 			subs = self.h_subscribers
+
 			# get a hex-created folder name
 			DB_folder_name = subs.get_param(chat_id,"folder_token")
-			# name a file with a datestamp
-			file_name = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-			# create a full filepath without extension
-			custom_filepath = path.join("/tmp",DB_folder_name,file_name)
 
-			file_ext = ".jpg"  # to avoid warning
-			# download photo to temporary folder. Save a path to the file (this one has extension)
+			if telegramHigh.isDocument(update):
+				# for documents, preserve original filename. It already has an extension.
+				full_filename = bot.getDocumentFileName(update)
+			else:
+				# if not a document, name a file with a datestamp. (Photo objects have weird filenames)
+				file_name = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+				# get an extension
+				file_ext = bot.getFileExt(update)
+				# sum them to get a full file name
+				full_filename = file_name + file_ext
+			# create a full path to the file in a temporary folder without extension
+			full_filepath = path.join("/tmp",DB_folder_name,full_filename)
+
+			# download photo to temporary folder.
 			while True:
 				try:
-					file_ext = bot.downloadFile(bot.getFileID(update), custom_filepath=custom_filepath)
+					bot.downloadFile(bot.getFileID(update), custom_filepath=full_filepath)
 					break
 				except:
 					sleep(5)
 					pass
 
-			full_filename = custom_filepath + file_ext
-
 			# upload to dropbox
 			while True:
 				try:
 					self.dbx.files_upload(
-					open(full_filename, 'rb')  # open file
-					,"/" + DB_folder_name + "/" + path.basename(custom_filepath) + file_ext  # set path in dropbox
-					,autorename=True
+					open(full_filepath, 'rb'),  # open file
+					"/" + DB_folder_name + "/" + full_filename,  # set path in dropbox
+					autorename=True
 					)
 					break
 				except:
@@ -181,12 +188,15 @@ class UploaderBot(object):
 							, reply_to=message_id
 							)
 
-			os.remove(full_filename)
+			# remove the file from temp folder
+			os.remove(full_filepath)
 
 			# remove the data about this photo and update queue file
 			self.queue_saver.pop_first(save=True)
 
+		# keep the thread running until the main thread signals to quit
 		while self.thread_keep_alive_flag:
+			#launch processing routine only if there is something to process
 			if not queue.empty():
 				kwargs = queue.get()
 				photoDownloadUpload(**kwargs)
