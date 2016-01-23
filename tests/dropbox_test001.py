@@ -21,6 +21,17 @@ random_folder_name = hex(getrandbits(128))[2:]
 
 # dbx.files_create_folder("/" + random_folder_name + "/test_folder001")
 
-dbx.files_upload(open("/tmp/001.jpg",'rb'), "/" + random_folder_name + "/test2.jpg"
-				 , autorename=True
-				 )
+# dbx.files_upload(open("/tmp/001.jpg",'rb'), "/" + random_folder_name + "/test2.jpg"
+# 				 , autorename=True
+# 				 )
+
+space_usage = dbx.users_get_space_usage()
+print("Space usage: ", space_usage)
+
+used_space = space_usage.used
+total_allocated_space = space_usage.allocation.get_individual().allocated
+
+print("Used space: %.2f GB" % (used_space/1024**3))
+print("Total space: %.2f GB" % (total_allocated_space/1024**3))
+print("Free space: %.2f GB" % ((total_allocated_space - used_space)/1024**3))
+

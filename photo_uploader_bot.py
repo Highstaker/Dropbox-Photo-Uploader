@@ -172,6 +172,7 @@ class UploaderBot(object):
 			# upload to dropbox
 			while True:
 				try:
+					# WARNING: files_upload is not usable for files over 140 MB
 					self.dbx.files_upload(
 					open(full_filepath, 'rb'),  # open file
 					"/" + DB_folder_name + "/" + full_filename,  # set path in dropbox

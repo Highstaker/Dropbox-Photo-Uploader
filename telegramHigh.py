@@ -9,6 +9,8 @@
 # +Is it readable to put single statements on same lines as in markup function?
 # +Maybe merge downloadDocument and downloadPhoto with downloadFile?
 # +What should be made private? make downloadFile private?
+# +Are docstrings fine? How to specify types of arguments and returns? +How widely used is reST?
+# +Is `while True` acceptable for data-geting and sending functions?
 
 import logging
 import telegram
@@ -50,16 +52,28 @@ def dummyFunction(*args, **kwargs):
 
 class telegramHigh:
 	"""
-	telegramHigh
+	telegramHigh is a library that helps handling Telegram bots in Python.
 	"""
 
 	def __init__(self, token):
+		"""
+
+		:param token: Telegram bot token. Can be received from BotFather.
+		:return: None
+		"""
 		super(telegramHigh, self).__init__()
+		# an identifier of the last update object.
 		self.LAST_UPDATE_ID = None
+		# Initialize bot
 		self.bot = telegram.Bot(token)
 
 	@staticmethod
 	def isPhoto(update):
+		"""
+		Returns true if the given message is a Photo.
+		:param update: an update object containing a message.
+		:return: True or False
+		"""
 		try:
 			if update.message.photo: return True
 			else: return False
@@ -68,6 +82,11 @@ class telegramHigh:
 
 	@staticmethod
 	def isDocument(update):
+		"""
+		Returns true if the given message is a Document (a File).
+		:param update: an update object containing a message.
+		:return: True or False
+		"""
 		try:
 			if update.message.document: return True
 			else: return False
@@ -155,7 +174,7 @@ class telegramHigh:
 
 	def sendPic(self, chat_id, pic, caption=None):
 		"""
-		Sends a picture in a Telegram message to a user.
+		Sends a picture in a Telegram message to a user. Retries if fails.
 		:param chat_id: ID of chat
 		:param pic: a picture file. Preferably the object created with open()
 		:param caption: a text that goes together with picture ina message.
@@ -196,6 +215,14 @@ class telegramHigh:
 		return updates
 
 	def getFileID(self, update, photoIndex=-1):
+		"""
+		Gets the file_id of a file contained in a message. Empty string if there is no file.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:return: file_id
+		"""
 		if self.isPhoto(update):
 			file_id = update.message.photo[photoIndex]['file_id']
 		elif self.isDocument(update):
@@ -206,35 +233,75 @@ class telegramHigh:
 		return file_id
 
 	def getFileByID(self, file_id):
+		"""
+		Gets a `File` object based on file_id.
+		:param file_id:
+		:return: `File`
+		"""
 		return self.bot.getFile(file_id)
 
 	def getFileByUpdate(self, update, photoIndex=-1):
+		"""
+		Gets a `File` object based on update object.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:return: `File`
+		"""
 		file_id = self.getFileID(update, photoIndex)
 		return self.getFileByID(file_id)
 
 	def getFullPath(self, update, photoIndex=-1):
+		"""
+		Gets a full path (URL) of a file contained in a message.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:return: full URL path to file
+		"""
 		File = self.getFileByUpdate(update, photoIndex)
 		pth = File.file_path
 		return pth
 
 	def getFullName(self, update, photoIndex=-1):
-		pth = self.getFullPath(update)
+		"""
+		Gets a filename (with extension) which is assigned by Telegram to a file contained in a message.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:return: full neame of a file
+		"""
+		pth = self.getFullPath(update, photoIndex)
 		full_name = path.basename(pth)
 		return full_name
 
 	def getURLFileName(self, update, photoIndex=-1):
-		full_name = self.getFullName(update)
+		"""
+		Gets a filename (without extension) which is assigned by Telegram to a file contained in a message.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:return: file name without extension
+		"""
+		full_name = self.getFullName(update, photoIndex)
 		file_name = path.splitext(full_name)[0]
 		return file_name
 
-	def getFileExt(self, update, no_dot=False):
+	def getFileExt(self, update, photoIndex=-1, no_dot=False):
 		"""
-
-		:param no_dot:
-		:param update:
-		:return:
+		Gets a filename (without extension) which is assigned by Telegram to a file contained in a message.
+		:param update: update object containing a message.
+		:param photoIndex: a photo message contains a picture in various resolutions.
+		This determines which one should be picked.
+		By default it is the last one, which has the highest resolution.
+		:param no_dot: removes a dot from file extension if True.
+		:return: file extension
 		"""
-		pth = self.getFullPath(update)
+		pth = self.getFullPath(update, photoIndex)
 		file_ext = path.splitext(pth)[1]
 		if no_dot:
 			file_ext = file_ext.replace(".", "")
@@ -243,8 +310,10 @@ class telegramHigh:
 	@staticmethod
 	def getDocumentFileName(update):
 		"""
-		Returns a filename (with extension) of a document in a message.
-		:param update: an update object containig a message
+		Returns a filename (with extension) of a document (File) in a message. 
+		It is the original name of a file, not the one that Telegram assigns to files.
+		Works only for file messages (not photo, text, etc.)
+		:param update: an update object containing a message
 		:return: a filename (with extension). Or empty string if update is not a document
 		"""
 		try:
@@ -257,6 +326,11 @@ class telegramHigh:
 			return ""
 
 	def getFileSize(self, update):
+		"""
+		Returns the size of a file in a message.
+		:param update: an update object containing a message
+		:return: file size
+		"""
 
 		file_id = self.getFileID(update)
 		File = self.getFileByID(file_id)
@@ -265,10 +339,15 @@ class telegramHigh:
 
 	def downloadFile(self, file_id, custom_filepath=None):
 		"""
-
-		:param custom_filepath:
+		Downloads the file with the given file_id to a specified location.
+		It can be from any type of message (Photo, Document, etc.)
 		:param file_id:
-		:return:
+		:param custom_filepath: A full path where a file should be saved.
+		If nothing is specified, it will be saved to current folder with a name that Telegram assigned to it.
+		Note: the extension specified in custom_filepath is ignored.
+		It is assigned automatically depending on the original extension (Document)
+		or the one Telegram assigned to a file (Photo)
+		:return: None
 		"""
 		File = self.bot.getFile(file_id)
 		if custom_filepath:
@@ -286,6 +365,16 @@ class telegramHigh:
 
 	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction,
 			termination_function=dummyFunction, slp=0.1):
+		"""
+		Starts the main loop, which can handle termination on `KeyboardInterrupt` (e.g. Ctrl+C)
+		:param processingFunction: a function that is invoked in a current iteration of the loop
+		only if there are updates. An `update` argument containing a message object is passed to it.
+		:param periodicFunction: a function that is invoked in every iteration of the loop
+		regardless of presence of updates.
+		:param termination_function: a function that is invoked when the loop is terminated by user.
+		:param slp: a pause between loops to decrease load.
+		:return: None
+		"""
 		while True:
 			try:
 				# a function that is called regardless of updates' presence
@@ -302,6 +391,12 @@ class telegramHigh:
 				break
 
 	def updateProcessing(self, processingFunction=dummyFunction):
+		"""
+		This function gets updates, passes them to `processingFunction` and updates the LAST_UPDATE_ID.
+		:param processingFunction: a function that is invoked in a current iteration of the loop
+		only if there are updates. An `update` argument containing a message object is passed to it.
+		:return: None
+		"""
 
 		# basically, messages sent to bot
 		updates = self.getUpdates()
