@@ -266,6 +266,10 @@ class telegramHigh:
 			except KeyboardInterrupt:
 				print("Terminated by user!")
 				termination_function()
+
+				# this ensures that LAST_UPDATE_ID is updated
+				#  or else it will process already processed messages after restart
+				self.getUpdates()
 				break
 
 	def updateProcessing(self, processingFunction=dummyFunction):
