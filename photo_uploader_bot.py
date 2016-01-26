@@ -13,7 +13,7 @@ from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 
-VERSION_NUMBER = (0, 7, 3)
+VERSION_NUMBER = (0, 8, 0)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -37,6 +37,8 @@ HELP_BUTTON = {"EN" : "⁉️" + "Help", "RU": "⁉️" + "Помощь"}
 ABOUT_BUTTON = {"EN" : "ℹ️ About", "RU": "ℹ️ О программе"}
 OTHER_BOTS_BUTTON = {"EN":"👾 My other bots", "RU": "👾 Другие мои боты"}
 DB_STORAGE_LINK_BUTTON = {"EN": "Get Link to photos", "RU": "Ссылка на фоты"}
+FREE_DB_SPACE_BUTTON = {"EN": "Get free space", "RU": "Свободное место"}
+
 EN_LANG_BUTTON = "Bot language:🇬🇧 EN"
 RU_LANG_BUTTON = "Язык бота:🇷🇺 RU"
 
@@ -46,11 +48,14 @@ DB_STORAGE_LINK_MESSAGE = {"EN": """The link to the photo storage: %s
 Your folder is %s
 """
 }
+FREE_DB_SPACE_MESSAGE = {"EN": "Free space left: %.2f GB", "RU": "Осталось свободного места: %.2f Гбайт"}
+
+
 ABOUT_MESSAGE = "2"
 OTHER_BOTS_MESSAGE = "3"
 
 MAIN_MENU_KEY_MARKUP = [
-[DB_STORAGE_LINK_BUTTON],
+[DB_STORAGE_LINK_BUTTON,FREE_DB_SPACE_BUTTON],
 [HELP_BUTTON,ABOUT_BUTTON,OTHER_BOTS_BUTTON],
 [EN_LANG_BUTTON,RU_LANG_BUTTON]
 ]
@@ -116,6 +121,31 @@ class UploaderBot(object):
 					periodicFunction=self.periodicFunction,
 					   termination_function=self.termination_function
 					   )
+
+	def get_free_dbx_space(self, units="GB"):
+		"""
+		Returns the amount of free space left in dropbox
+		:param units: Specifies the units in which to display. Can be "TB", "GB", "MB", "KB" or "bytes"
+		:type units: str
+		:return: amount of free space left in dropbox
+		:rtype: int
+		"""
+		UNITS = {'TB': 4, 'GB': 3, 'MB': 2, 'KB': 1, 'bytes': 0}
+
+		# Info object
+		space_usage = self.dbx.users_get_space_usage()
+
+		# Total space (for an individual user)
+		total_allocated_space = space_usage.allocation.get_individual().allocated
+
+		# Occupied space
+		used_space = space_usage.used
+
+		# Free space
+		free_space = total_allocated_space - used_space
+
+		return free_space/1024**UNITS[units]
+
 
 	def periodicFunction(self):
 		self.launch_photoDownloadUpload_Daemon()
@@ -264,6 +294,11 @@ class UploaderBot(object):
 			bot.sendMessage(chat_id=chat_id
 				, message=lS(DB_STORAGE_LINK_MESSAGE)
 						% (DB_STORAGE_PUBLIC_LINK, subs.get_param(chat_id=chat_id, param="folder_token"))
+				, key_markup=MMKM
+				)
+		elif message == "/free" or message == lS(FREE_DB_SPACE_BUTTON):
+			bot.sendMessage(chat_id=chat_id
+				, message=lS(FREE_DB_SPACE_MESSAGE) % self.get_free_dbx_space()
 				, key_markup=MMKM
 				)
 		elif message == RU_LANG_BUTTON:
