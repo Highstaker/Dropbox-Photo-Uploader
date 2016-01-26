@@ -1,17 +1,6 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
-
-# Questions:
-# +Should breakLongMessage() be made static?
-# +Is there a better way to avoid dummyFunction?
-# +Should I put MAX_CHARS_PER_MESSAGE as a static variable of telegramHigh class?
-# +Better ways of printing errors with lines.
-# +Is it readable to put single statements on same lines as in markup function?
-# +Maybe merge downloadDocument and downloadPhoto with downloadFile?
-# +What should be made private? make downloadFile private?
-# +Are docstrings fine? How to specify types of arguments and returns? +How widely used is reST?
-# +Is `while True` acceptable for data-geting and sending functions?
-
+#TODO: implement better traceback for errors
 import logging
 import telegram
 import socket
@@ -30,20 +19,10 @@ logging.basicConfig(format=u'[%(asctime)s] %(filename)s[LINE:%(lineno)d]# %(leve
 # PARAMETERS
 ############
 
-MAX_CHARS_PER_MESSAGE = 2048
-
 
 ##########
 # METHODS
 #########
-
-def dummyFunction(*args, **kwargs):
-	"""
-	Does nothing, used as a placeholder
-	:return: None
-	"""
-	pass
-
 
 ############
 # CLASSES###
@@ -75,8 +54,7 @@ class telegramHigh:
 		:return: True or False
 		"""
 		try:
-			if update.message.photo: return True
-			else: return False
+			return bool(update.message.photo)
 		except AttributeError:
 			return False
 
@@ -88,15 +66,17 @@ class telegramHigh:
 		:return: True or False
 		"""
 		try:
-			if update.message.document: return True
-			else: return False
+			return bool(update.message.document)
 		except AttributeError:
 			return False
 
 	@staticmethod
-	def breakLongMessage(msg):
+	def breakLongMessage(msg, max_chars_per_message=2048):
 		"""
 		Breaks a message that is too long.
+		:param max_chars_per_message: maximum amount of characters per message.
+		The official maximum is 4096.
+		Changing this is not recommended.
 		:param msg: message to be split
 		:return: a list of message pieces
 		"""
@@ -115,11 +95,11 @@ class telegramHigh:
 					result += result_split.pop(0) + "\n"
 				else:
 					break
-				if len(result) > MAX_CHARS_PER_MESSAGE:
+				if len(result) > max_chars_per_message:
 					break
 
 			if result:
-				n_parts = int(len(result) / MAX_CHARS_PER_MESSAGE + 1)
+				n_parts = int(len(result) / max_chars_per_message + 1)
 
 				for i in range(n_parts):
 					broken += [result[i * len(result) // n_parts:(i + 1) * len(result) // n_parts]]
@@ -140,9 +120,12 @@ class telegramHigh:
 		:return: None
 		"""
 		def markup(m):
-			if not m: return telegram.ReplyKeyboardHide()
-			elif m == "SAME": return None
-			else: return telegram.ReplyKeyboardMarkup(m)
+			if not m:
+				return telegram.ReplyKeyboardHide()
+			elif m == "SAME":
+				return None
+			else:
+				return telegram.ReplyKeyboardMarkup(m)
 
 		logging.warning("Replying to " + str(chat_id) + ": " + message)
 		fulltext = self.breakLongMessage(message)
@@ -363,8 +346,8 @@ class telegramHigh:
 		# download the file to a given directory
 		File.download(custom_path=custom_filepath)
 
-	def start(self, processingFunction=dummyFunction, periodicFunction=dummyFunction,
-			termination_function=dummyFunction, slp=0.1):
+	def start(self, processingFunction=None, periodicFunction=None,
+			termination_function=None, slp=0.1):
 		"""
 		Starts the main loop, which can handle termination on `KeyboardInterrupt` (e.g. Ctrl+C)
 		:param processingFunction: a function that is invoked in a current iteration of the loop
@@ -378,19 +361,21 @@ class telegramHigh:
 		while True:
 			try:
 				# a function that is called regardless of updates' presence
-				periodicFunction()
-				self.updateProcessing(processingFunction=processingFunction)
+				if periodicFunction:
+					periodicFunction()
+				self._updateProcessing(processingFunction=processingFunction)
 				sleep(slp)
 			except KeyboardInterrupt:
 				print("Terminated by user!")
-				termination_function()
+				if termination_function:
+					termination_function()
 
 				# this ensures that LAST_UPDATE_ID is updated
 				#  or else it will process already processed messages after restart
 				self.getUpdates()
 				break
 
-	def updateProcessing(self, processingFunction=dummyFunction):
+	def _updateProcessing(self, processingFunction=None):
 		"""
 		This function gets updates, passes them to `processingFunction` and updates the LAST_UPDATE_ID.
 		:param processingFunction: a function that is invoked in a current iteration of the loop
@@ -407,7 +392,8 @@ class telegramHigh:
 					update.message.chat_id) + " " + update.message.from_user.username + " " + update.message.text)
 
 			# a functions that processes updates, one by one
-			processingFunction(update)
+			if processingFunction:
+				processingFunction(update)
 
 			# Updates global offset to get the new updates
 			self.LAST_UPDATE_ID = update.update_id + 1
