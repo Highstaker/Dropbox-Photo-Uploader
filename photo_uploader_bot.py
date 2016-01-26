@@ -16,25 +16,27 @@ from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
+from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 1)
+VERSION_NUMBER = (0, 8, 2)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
 
 ###############
-#####PARAMS#########
+# PARAMS#########
 ###############
 
-INITIAL_SUBSCRIBER_PARAMS = {"lang": "EN"  # bot's langauge
-	, "folder_token": ""  # a unique token generated for each user. Is used for a dropbox folder name for that user.
-							 }
+INITIAL_SUBSCRIBER_PARAMS = {"lang": "EN",  # bot's langauge
+							"folder_token": ""
+							# a unique token generated for each user. Is used for a dropbox folder name for that user.
+							}
 
 MAX_FILE_SIZE = 8 * 1024 * 1024
 SUPPORTED_FILE_FORMATS = ['jpg', 'jpeg', 'png', 'bmp']
 
 #############
-####TEXTS####
+# TEXTS####
 ############
 
 HELP_BUTTON = {"EN": "⁉️" + "Help", "RU": "⁉️" + "Помощь"}
@@ -64,7 +66,7 @@ MAIN_MENU_KEY_MARKUP = [
 ]
 
 #################
-#######GLOBALS###
+# GLOBALS###
 #################
 
 QUEUE_PARAMS_STORAGE_FILENAME = "QueueParamsStorage.save"
@@ -95,7 +97,7 @@ else:
 
 
 ##################
-######MAIN CLASS##
+# MAIN CLASS##
 ##################
 
 class UploaderBot(object):
@@ -122,9 +124,9 @@ class UploaderBot(object):
 
 		# starts the main loop
 		self.bot.start(processingFunction=self.processUpdate,
-					   periodicFunction=self.periodicFunction,
-					   termination_function=self.termination_function
-					   )
+					periodicFunction=self.periodicFunction,
+					termination_function=self.termination_function
+					)
 
 	def get_free_dbx_space(self, units="GB"):
 		"""
@@ -159,8 +161,8 @@ class UploaderBot(object):
 	def launch_photoDownloadUpload_Daemon(self):
 		def launch_thread():
 			self.photoDownloadUpload_Daemon_process = t = Thread(target=self.photoDownloadUpload_Daemon,
-																 args=(self.uploader_queue,)
-																 )
+																args=(self.uploader_queue,)
+																)
 			t.start()
 
 		try:
@@ -199,6 +201,7 @@ class UploaderBot(object):
 					bot.downloadFile(bot.getFileID(update), custom_filepath=full_filepath)
 					break
 				except:
+					logging.error("Could not download photo, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
 					pass
 
@@ -213,14 +216,12 @@ class UploaderBot(object):
 					)
 					break
 				except:
+					logging.error("Could not upload to Dropbox, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
 					pass
 
 			# confirmation message
-			bot.sendMessage(chat_id=chat_id
-							, message="Photo uploaded!"
-							, reply_to=message_id
-							)
+			bot.sendMessage(chat_id=chat_id, message="Photo uploaded!", reply_to=message_id)
 
 			# remove the file from temp folder
 			os.remove(full_filepath)
@@ -239,6 +240,8 @@ class UploaderBot(object):
 	def assignBotLanguage(self, chat_id, language):
 		"""
 		Assigns bot language to a subscribers list and saves to disk
+		:param language:
+		:param chat_id:
 		:return: None
 		"""
 		self.h_subscribers.set_param(chat_id=chat_id, param="lang", value=language)
@@ -246,9 +249,7 @@ class UploaderBot(object):
 	def processUpdate(self, u):
 		def sendParamsToThread(**kwargs):
 			# process photo
-			thread_params = dict(bot=bot, update=u, chat_id=chat_id,
-								 message_id=message_id,
-								 )
+			thread_params = dict(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 			# save params to file
 			self.queue_saver.append_to_list(thread_params, save=True)
 			# send params to Queue for thread to process
@@ -329,7 +330,7 @@ class UploaderBot(object):
 				if not (bot.getFileExt(u, no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
 					bot.sendMessage(chat_id=chat_id
 									, message="Wrong file format. Supported formats are: %s" % ", ".join(
-										SUPPORTED_FILE_FORMATS)
+								SUPPORTED_FILE_FORMATS)
 									, reply_to=message_id
 									)
 				# limit filesize
@@ -342,11 +343,11 @@ class UploaderBot(object):
 					print("Sending params to thread on message. Document")  # debug
 					sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 			except TelegramError:
-				logging.error("")# put traceback here
+				logging.error("Could not process file.\n" + full_traceback())
 				bot.sendMessage(chat_id=chat_id
-									, message="Failed to process file"
-									, reply_to=message_id
-									)
+								, message="Failed to process file"
+								, reply_to=message_id
+								)
 
 		else:
 			bot.sendMessage(chat_id=chat_id

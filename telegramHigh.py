@@ -5,8 +5,8 @@ import logging
 import telegram
 import socket
 from os import path, makedirs
-import sys
 from time import sleep
+from tracebackprinter import full_traceback
 
 # if a connection is lost and getUpdates takes too long, an error is raised
 socket.setdefaulttimeout(30)
@@ -146,13 +146,14 @@ class telegramHigh:
 					if "Message is too long" in str(e):
 						self.sendMessage(chat_id=chat_id, message="Error: Message is too long!")
 					elif ("urlopen error" in str(e)) or ("timed out" in str(e)):
-						logging.error("Could not send message. Retrying! Error: " + str(
-								sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+						logging.error("Could not send message. Retrying! Error: " + 
+							full_traceback()
+							)
 						sleep(3)
 						continue
 					else:
 						logging.error(
-								"Could not send message. Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+								"Could not send message. Error: " + full_traceback())
 				break
 
 	def sendPic(self, chat_id, pic, caption=None):
@@ -171,9 +172,8 @@ class telegramHigh:
 				# This ensures that if a file needs to be re-read (may happen due to exception), it is read from the beginning.
 				pic.seek(0)
 				self.bot.sendPhoto(chat_id=chat_id, photo=pic, caption=caption)
-			except Exception as e:
-				logging.error(
-						"Could not send picture. Retrying! Error: " + str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+			except:
+				logging.error("Could not send picture. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
 			break
@@ -189,9 +189,8 @@ class telegramHigh:
 		while True:
 			try:
 				updates = self.bot.getUpdates(offset=self.LAST_UPDATE_ID)
-			except Exception as e:
-				logging.error("Could not read updates. Retrying! Error: " +
-							str(sys.exc_info()[-1].tb_lineno) + ": " + str(e))
+			except:
+				logging.error("Could not read updates. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
 			break
