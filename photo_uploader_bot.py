@@ -16,7 +16,7 @@ from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 3)
+VERSION_NUMBER = (0, 8, 4)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -70,7 +70,7 @@ MAIN_MENU_KEY_MARKUP = [
 QUEUE_PARAMS_STORAGE_FILENAME = "QueueParamsStorage.save"
 
 DB_TOKEN_FILENAME = "DB_token"
-if path.isfile(DB_TOKEN_FILENAME):
+if path.isfile(path.join(SCRIPT_FOLDER, DB_TOKEN_FILENAME)):
 	with open(path.join(SCRIPT_FOLDER, DB_TOKEN_FILENAME), 'r') as f:
 		DB_TOKEN = f.read().replace("\n", "")
 else:
@@ -78,7 +78,7 @@ else:
 	quit()
 
 BOT_TOKEN_FILENAME = "bot_token"
-if path.isfile(BOT_TOKEN_FILENAME):
+if path.isfile(path.join(SCRIPT_FOLDER, BOT_TOKEN_FILENAME)):
 	with open(path.join(SCRIPT_FOLDER, BOT_TOKEN_FILENAME), 'r') as f:
 		BOT_TOKEN = f.read().replace("\n", "")
 else:
@@ -86,7 +86,7 @@ else:
 	quit()
 
 DB_STORAGE_LINK_FILENAME = "DB_shared_folder"
-if path.isfile(DB_STORAGE_LINK_FILENAME):
+if path.isfile(path.join(SCRIPT_FOLDER, DB_STORAGE_LINK_FILENAME)):
 	with open(path.join(SCRIPT_FOLDER, DB_STORAGE_LINK_FILENAME), 'r') as f:
 		DB_STORAGE_PUBLIC_LINK = f.read().replace("\n", "")
 else:
