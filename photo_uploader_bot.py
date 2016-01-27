@@ -16,7 +16,7 @@ from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 4)
+VERSION_NUMBER = (0, 8, 5)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))

@@ -1,8 +1,6 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 import logging
-import urllib
-
 import telegram
 import socket
 from os import path, makedirs
@@ -143,6 +141,8 @@ class telegramHigh:
 											reply_markup=markup(key_markup),
 											reply_to_message_id=reply_to
 											)
+				except KeyboardInterrupt:
+					raise KeyboardInterrupt
 				except Exception as e:
 					if "Message is too long" in str(e):
 						self.sendMessage(chat_id=chat_id, message="Error: Message is too long!")
@@ -173,7 +173,9 @@ class telegramHigh:
 				# This ensures that if a file needs to be re-read (may happen due to exception), it is read from the beginning.
 				pic.seek(0)
 				self.bot.sendPhoto(chat_id=chat_id, photo=pic, caption=caption)
-			except urllib.error.URLError:
+			except KeyboardInterrupt:
+				raise KeyboardInterrupt
+			except:
 				logging.error("Could not send picture. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
@@ -191,7 +193,9 @@ class telegramHigh:
 			try:
 				updates = self.bot.getUpdates(offset=self.LAST_UPDATE_ID)
 				pass
-			except urllib.error.URLError:
+			except KeyboardInterrupt:
+				raise KeyboardInterrupt
+			except:
 				logging.error("Could not read updates. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
