@@ -1,7 +1,8 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
-#TODO: implement better traceback for errors
 import logging
+import urllib
+
 import telegram
 import socket
 from os import path, makedirs
@@ -172,7 +173,7 @@ class telegramHigh:
 				# This ensures that if a file needs to be re-read (may happen due to exception), it is read from the beginning.
 				pic.seek(0)
 				self.bot.sendPhoto(chat_id=chat_id, photo=pic, caption=caption)
-			except:
+			except urllib.error.URLError:
 				logging.error("Could not send picture. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
@@ -189,7 +190,8 @@ class telegramHigh:
 		while True:
 			try:
 				updates = self.bot.getUpdates(offset=self.LAST_UPDATE_ID)
-			except:
+				pass
+			except urllib.error.URLError:
 				logging.error("Could not read updates. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
