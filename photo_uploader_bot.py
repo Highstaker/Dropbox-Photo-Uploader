@@ -8,17 +8,15 @@ from threading import Thread
 from time import sleep
 import dropbox
 from random import getrandbits
-from os import path
-
+from os import path, listdir
 from telegram import TelegramError
-
 from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 2)
+VERSION_NUMBER = (0, 8, 3)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -53,7 +51,7 @@ HELP_MESSAGE = {"EN": "Help message", "RU": "Файл помощи"}
 DB_STORAGE_LINK_MESSAGE = {"EN": """The link to the photo storage: %s
 Your folder is %s
 """
-						   }
+							}
 FREE_DB_SPACE_MESSAGE = {"EN": "Free space left: %.2f GB", "RU": "Осталось свободного места: %.2f Гбайт"}
 
 ABOUT_MESSAGE = "2"
@@ -192,8 +190,11 @@ class UploaderBot(object):
 				file_ext = bot.getFileExt(update)
 				# sum them to get a full file name
 				full_filename = file_name + file_ext
+
 			# create a full path to the file in a temporary folder without extension
 			full_filepath = path.join("/tmp", DB_folder_name, full_filename)
+			# full path without file name
+			full_dir_path = path.dirname(full_filepath)
 
 			# download photo to temporary folder.
 			while True:
@@ -204,6 +205,18 @@ class UploaderBot(object):
 					logging.error("Could not download photo, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
 					pass
+
+			# change to file's dir
+			os.chdir(full_dir_path)
+
+			# sometimes a file is downloaded with a different name. verify that it exists and renme if the name is wrong
+			if not path.isfile(full_filepath):
+				# list of files in a directory
+				onlyfiles = [fle for fle in listdir(full_dir_path) if path.isfile(fle)]
+				# Get the latest file in the directory
+				wrong_file = max(onlyfiles, key=path.getctime)
+				# Rename it
+				os.rename(wrong_file, full_filename)
 
 			# upload to dropbox
 			while True:
@@ -218,13 +231,13 @@ class UploaderBot(object):
 				except:
 					logging.error("Could not upload to Dropbox, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
-					pass
 
 			# confirmation message
 			bot.sendMessage(chat_id=chat_id, message="Photo uploaded!", reply_to=message_id)
 
-			# remove the file from temp folder
-			os.remove(full_filepath)
+			# remove all files from temp folder
+			for i in listdir(full_dir_path):
+				os.remove(i)
 
 			# remove the data about this photo and update queue file
 			self.queue_saver.pop_first(save=True)
