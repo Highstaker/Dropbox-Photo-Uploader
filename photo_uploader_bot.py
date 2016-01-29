@@ -43,19 +43,91 @@ OTHER_BOTS_BUTTON = {"EN": "👾 My other bots", "RU": "👾 Другие мои
 DB_STORAGE_LINK_BUTTON = {"EN": "Get Link to photos", "RU": "Ссылка на фоты"}
 FREE_DB_SPACE_BUTTON = {"EN": "Get free space", "RU": "Свободное место"}
 
-EN_LANG_BUTTON = "Bot language:🇬🇧 EN"
-RU_LANG_BUTTON = "Язык бота:🇷🇺 RU"
+EN_LANG_BUTTON = "🇬🇧 EN"
+RU_LANG_BUTTON = "🇷🇺 RU"
 
 START_MESSAGE = "Welcome! Type /help to get help."
-HELP_MESSAGE = {"EN": "Help message", "RU": "Файл помощи"}
 DB_STORAGE_LINK_MESSAGE = {"EN": """The link to the photo storage: %s
 Your folder is %s
+""",
+"RU": """Ссылка на хранилище фотографий: %s
+Ваш личный каталог: %s
 """
 							}
+
 FREE_DB_SPACE_MESSAGE = {"EN": "Free space left: %.2f GB", "RU": "Осталось свободного места: %.2f Гбайт"}
 
-ABOUT_MESSAGE = "2"
-OTHER_BOTS_MESSAGE = "3"
+ABOUT_MESSAGE = {"EN": """*Dropbox Photo Uploader Bot*
+_Created by:_ Highstaker a.k.a. OmniSable.
+[Source code](https://github.com/Highstaker/Dropbox-Photo-Uploader)
+Version: """ + ".".join([str(i) for i in VERSION_NUMBER]) + """
+[My channel, where I post development notes and update news](https://telegram.me/highstakerdev).
+
+This bot uses the [python-telegram-bot](https://github.com/leandrotoledo/python-telegram-bot) library.
+"""
+,"RU": """*Dropbox Photo Uploader Bot*
+_Автор:_ Highstaker a.k.a. OmniSable.
+По вопросам и предложениям обращайтесь в Телеграм (@OmniSable).
+Исходный код [здесь](https://github.com/Highstaker/Dropbox-Photo-Uploader)
+Версия: """ + ".".join([str(i) for i in VERSION_NUMBER]) + """
+[Мой канал, где я объявляю о новых версиях ботов](https://telegram.me/highstakerdev).
+
+Этот бот написан на основе библиотеки [python-telegram-bot](https://github.com/leandrotoledo/python-telegram-bot).
+"""
+}
+HELP_MESSAGE = {"EN": """This bot allows you to send photos via Telegram to the storage in Dropbox. Photos of each user are put into his/her personal folder.
+You may upload an image either as a _photo_ or as a _file_. 
+
+*Uploading as a photo*
+In this mode photos are compressed, so they are uploaded much faster. But, due to compression photos lose some quality, along with their original filenames and metadata.
+
+*Uploading as a file*
+File upload allows you to save picture as-is, preserving its full quality, filename and metadata. Note that most modern cameras take photos several megabytes large. Uploading many photos in file mode is slow and also increases load on storage and bot. *Please, don't abuse!*
+Currently, the maximum size of a photo is {:.1f} MB.
+Accepted file formats are: {}
+
+*Accessing storage*
+To get link to photo storage, press the `{}` button. It also displays the name of your personal folder.
+To get the amount of remaining free space in storage, press the `{}` button. 
+""", 
+"RU": """Данный бот позволяет отправлять фотографии через Телеграм в хранилище в Dropbox. Фотографии помещаются в отдельную папку для каждого пользователя.
+Вы можете загрузить картинку либо как _фотографию_, либо как _файл_. 
+
+*Загрузка в режиме фотографии*
+В этом режиме фотографии сжимаются, загрузка производится быстро. Однако, сжатие приводит к потере качества, а также изменению имени и формата файла и потере метаданных.
+
+*Загрузка в режиме файла*
+Загрузка в виде файла позволяет переслать картинку в первоначальном качестве с сохранением имени файла и метаданных. Однако, ввиду больших размеров, загрузка занимает большее время, а также увеличивает нагрузку на бота и хранилище. *Пожалуйста, используйте этот режим разумно!*
+Максимальный размер файла: {:.1f} Мбайт.
+Допустимые форматы: {}
+
+*Хранилище фотографий*
+Для получения ссылки на хранилище файлов нажмите кнопку `{}`. Имя вашего личного каталога также будет отображено.
+Чтобы узнать количество оставшегося в хранилище свободного места, нажмите кнопку `{}`. 
+"""}
+
+OTHER_BOTS_MESSAGE = {"EN": """*My other bots*:
+
+@multitran_bot: a Russian-Whichever dictionary with support of 9 languages. Has transcriptions for English words.
+
+@OmniCurrencyExchangeBot: a currency converter bot supporting past rates and graphs.
+"""
+, "RU": """*Другие мои боты*:
+
+@multitran_bot: Русско-любой словарь с поддержкой 9 языков. Есть транскрипции английских слов.
+
+@OmniCurrencyExchangeBot: Конвертер валют с поддержкой графиков и прошлых курсов.
+"""
+}
+
+WRONG_FILE_FORMAT_MESSAGE = {"EN": "Wrong file format. Supported formats are: {0}",
+"RU": "Неверный формат файла. Поддерживаемые форматы: {0}"
+}
+
+FILE_TOO_BIG_MESSAGE = {"EN": "File is too big. Maximum size is {:.1f} MB",
+"RU": "Файл слишком большой. Максимальный размер файла: {:.1f} MB"
+
+}
 
 MAIN_MENU_KEY_MARKUP = [
 	[DB_STORAGE_LINK_BUTTON, FREE_DB_SPACE_BUTTON],
@@ -294,13 +366,15 @@ class UploaderBot(object):
 							)
 		elif message == "/help" or message == lS(HELP_BUTTON):
 			bot.sendMessage(chat_id=chat_id
-							, message=lS(HELP_MESSAGE)
+							, message=lS(HELP_MESSAGE).format(MAX_FILE_SIZE/1024**2, ", ".join(SUPPORTED_FILE_FORMATS), lS(DB_STORAGE_LINK_BUTTON), lS(FREE_DB_SPACE_BUTTON))
 							, key_markup=MMKM
+							, markdown=True
 							)
 		elif message == "/about" or message == lS(ABOUT_BUTTON):
 			bot.sendMessage(chat_id=chat_id
 							, message=lS(ABOUT_MESSAGE)
 							, key_markup=MMKM
+							, markdown=True
 							)
 		elif message == "/otherbots" or message == lS(OTHER_BOTS_BUTTON):
 			bot.sendMessage(chat_id=chat_id
@@ -312,6 +386,7 @@ class UploaderBot(object):
 							, message=lS(DB_STORAGE_LINK_MESSAGE)
 									  % (DB_STORAGE_PUBLIC_LINK, subs.get_param(chat_id=chat_id, param="folder_token"))
 							, key_markup=MMKM
+							, preview=False
 							)
 		elif message == "/free" or message == lS(FREE_DB_SPACE_BUTTON):
 			bot.sendMessage(chat_id=chat_id
@@ -342,14 +417,14 @@ class UploaderBot(object):
 				# check supported file formats
 				if not (bot.getFileExt(u, no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
 					bot.sendMessage(chat_id=chat_id
-									, message="Wrong file format. Supported formats are: %s" % ", ".join(
-								SUPPORTED_FILE_FORMATS)
+									, message=lS(WRONG_FILE_FORMAT_MESSAGE).format(", ".join(
+								SUPPORTED_FILE_FORMATS))
 									, reply_to=message_id
 									)
 				# limit filesize
 				elif bot.getFileSize(u) > MAX_FILE_SIZE:
 					bot.sendMessage(chat_id=chat_id
-									, message="File is too big. Maximum size is %.1f MB" % (MAX_FILE_SIZE / (1024 ** 2))
+									, message=lS(FILE_TOO_BIG_MESSAGE).format(MAX_FILE_SIZE / 1024 ** 2)
 									, reply_to=message_id
 									)
 				else:

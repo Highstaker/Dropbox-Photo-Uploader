@@ -114,7 +114,9 @@ class telegramHigh:
 		If "SAME", use the same markup as before.
 		If None, hide the custom keyboard.
 		:param preview: Should a link in a message generate a page preview within a message?
+		:type preview: bool
 		:param markdown: Should a message support markdown formatting?
+		:type markdown: bool
 		:param reply_to: An id of an existing message. A sent message will be a reply to that message.
 		:return: None
 		"""
