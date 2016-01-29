@@ -16,7 +16,7 @@ from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 5)
+VERSION_NUMBER = (0, 8, 6)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -201,7 +201,7 @@ class UploaderBot(object):
 				try:
 					bot.downloadFile(bot.getFileID(update), custom_filepath=full_filepath)
 					break
-				except:
+				except Exception:
 					logging.error("Could not download photo, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
 					pass
@@ -228,7 +228,7 @@ class UploaderBot(object):
 							autorename=True
 					)
 					break
-				except:
+				except Exception:
 					logging.error("Could not upload to Dropbox, retrying. Traceback:\n" + full_traceback())
 					sleep(5)
 

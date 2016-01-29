@@ -175,7 +175,7 @@ class telegramHigh:
 				self.bot.sendPhoto(chat_id=chat_id, photo=pic, caption=caption)
 			except KeyboardInterrupt:
 				raise KeyboardInterrupt
-			except:
+			except Exception:
 				logging.error("Could not send picture. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
@@ -195,7 +195,7 @@ class telegramHigh:
 				pass
 			except KeyboardInterrupt:
 				raise KeyboardInterrupt
-			except:
+			except Exception:
 				logging.error("Could not read updates. Retrying! Error: " + full_traceback())
 				sleep(1)
 				continue
