@@ -25,6 +25,8 @@ random_folder_name = hex(getrandbits(128))[2:]
 # 				 , autorename=True
 # 				 )
 
+print("Root metadata:", dbx.files_get_metadata("/001"))
+
 space_usage = dbx.users_get_space_usage()
 print("Space usage: ", space_usage)
 
