@@ -10,13 +10,15 @@ import dropbox
 from random import getrandbits
 from os import path, listdir
 from telegram import TelegramError
+
+from infofile_thread import InfofileThread
 from languagesupport import LanguageSupport
 from telegramHigh import telegramHigh
 from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 8, 6)
+VERSION_NUMBER = (0, 9, 0)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -26,8 +28,10 @@ SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
 ###############
 
 INITIAL_SUBSCRIBER_PARAMS = {"lang": "EN",  # bot's langauge
-							"folder_token": ""
-							# a unique token generated for each user. Is used for a dropbox folder name for that user.
+							"folder_token": "",	# a unique token generated for each user. Is used for a dropbox folder name for that user.
+							"input_mode": 0,
+							 "username": "",
+							 "comment": ""
 							}
 
 MAX_FILE_SIZE = 8 * 1024 * 1024
@@ -42,6 +46,9 @@ ABOUT_BUTTON = {"EN": "ℹ️ About", "RU": "ℹ️ О программе"}
 OTHER_BOTS_BUTTON = {"EN": "👾 My other bots", "RU": "👾 Другие мои боты"}
 DB_STORAGE_LINK_BUTTON = {"EN": "Get Link to photos", "RU": "Ссылка на фоты"}
 FREE_DB_SPACE_BUTTON = {"EN": "Get free space", "RU": "Свободное место"}
+SET_USERNAME_BUTTON = {"EN": "Set username", "RU": "Имя пользователя"}
+SET_COMMENT_BUTTON = {"EN": "Set comment", "RU": "Комментарий"}
+TOGGLE_INFOFILE_BUTTON = {"EN": "Toggle Info File", "RU": "Вкл/Выкл информационный файл"}
 
 EN_LANG_BUTTON = "🇬🇧 EN"
 RU_LANG_BUTTON = "🇷🇺 RU"
@@ -54,6 +61,13 @@ Your folder is %s
 Ваш личный каталог: %s
 """
 							}
+
+SET_USERNAME_MESSAGE = {"EN": "Type in your name to be shown in info file.",
+"RU": "Введите своё имя для информационного файла"
+}
+SET_COMMENT_MESSAGE = {"EN": "Type in a comment text to be shown in info file.",
+"RU": "Введите комментарий для информационного файла"
+}
 
 FREE_DB_SPACE_MESSAGE = {"EN": "Free space left: %.2f GB", "RU": "Осталось свободного места: %.2f Гбайт"}
 
@@ -126,11 +140,10 @@ WRONG_FILE_FORMAT_MESSAGE = {"EN": "Wrong file format. Supported formats are: {0
 
 FILE_TOO_BIG_MESSAGE = {"EN": "File is too big. Maximum size is {:.1f} MB",
 "RU": "Файл слишком большой. Максимальный размер файла: {:.1f} MB"
-
 }
 
 MAIN_MENU_KEY_MARKUP = [
-	[DB_STORAGE_LINK_BUTTON, FREE_DB_SPACE_BUTTON],
+	[DB_STORAGE_LINK_BUTTON, FREE_DB_SPACE_BUTTON, SET_USERNAME_BUTTON, SET_COMMENT_BUTTON, TOGGLE_INFOFILE_BUTTON],
 	[HELP_BUTTON, ABOUT_BUTTON, OTHER_BOTS_BUTTON],
 	[EN_LANG_BUTTON, RU_LANG_BUTTON]
 ]
@@ -393,6 +406,22 @@ class UploaderBot(object):
 							, message=lS(FREE_DB_SPACE_MESSAGE) % self.get_free_dbx_space()
 							, key_markup=MMKM
 							)
+		elif message == "/set_name" or message == lS(SET_USERNAME_BUTTON):
+			subs.set_param(chat_id=chat_id,param="input_mode", value=1)
+			bot.sendMessage(chat_id=chat_id
+							, message=lS(SET_USERNAME_MESSAGE)
+							, key_markup=MMKM
+							)
+		elif message == "/set_comment" or message == lS(SET_COMMENT_BUTTON):
+			subs.set_param(chat_id=chat_id,param="input_mode", value=2)
+			bot.sendMessage(chat_id=chat_id
+							, message=lS(SET_COMMENT_MESSAGE)
+							, key_markup=MMKM
+							)
+		elif message == "/toggle_infofile" or message == lS(TOGGLE_INFOFILE_BUTTON):
+			InfofileThread(bot, self.dbx, chat_id, subs.get_param(chat_id, "folder_token"),
+						subs.get_param(chat_id, "username"), subs.get_param(chat_id, "comment"),
+						subs.get_param(chat_id, "lang"))
 		elif message == RU_LANG_BUTTON:
 			self.assignBotLanguage(chat_id, 'RU')
 			LS = LanguageSupport(subs.get_param(chat_id=chat_id, param="lang"))
@@ -418,7 +447,7 @@ class UploaderBot(object):
 				if not (bot.getFileExt(u, no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
 					bot.sendMessage(chat_id=chat_id
 									, message=lS(WRONG_FILE_FORMAT_MESSAGE).format(", ".join(
-								SUPPORTED_FILE_FORMATS))
+									SUPPORTED_FILE_FORMATS))
 									, reply_to=message_id
 									)
 				# limit filesize
@@ -436,12 +465,34 @@ class UploaderBot(object):
 								, message="Failed to process file"
 								, reply_to=message_id
 								)
-
 		else:
-			bot.sendMessage(chat_id=chat_id
-							, message="Unknown command!"
-							, key_markup=MMKM
-							)
+			if subs.get_param(chat_id,"input_mode") == 1:
+				# Username input mode
+				subs.set_param(chat_id, param="username", value=message)
+				subs.set_param(chat_id, param="input_mode", value=0)
+				bot.sendMessage(chat_id=chat_id
+								, message="Username set to " + message
+								, key_markup=MMKM
+								)
+				InfofileThread(bot, self.dbx, chat_id, subs.get_param(chat_id, "folder_token"),
+					subs.get_param(chat_id, "username"), subs.get_param(chat_id, "comment"),
+					subs.get_param(chat_id, "lang"), recreate=True)
+			elif subs.get_param(chat_id,"input_mode") == 2:
+				# Comment input mode
+				subs.set_param(chat_id, param="comment", value=message)
+				subs.set_param(chat_id, param="input_mode", value=0)
+				bot.sendMessage(chat_id=chat_id
+								, message="Comment set!"
+								, key_markup=MMKM
+								)
+				InfofileThread(bot, self.dbx, chat_id, subs.get_param(chat_id, "folder_token"),
+					subs.get_param(chat_id, "username"), subs.get_param(chat_id, "comment"),
+					subs.get_param(chat_id, "lang"), recreate=True)
+			else:
+				bot.sendMessage(chat_id=chat_id
+								, message="Unknown command!"
+								, key_markup=MMKM
+								)
 
 
 def main():

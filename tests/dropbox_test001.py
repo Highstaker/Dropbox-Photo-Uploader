@@ -26,6 +26,14 @@ random_folder_name = hex(getrandbits(128))[2:]
 # 				 )
 
 print("Root metadata:", dbx.files_get_metadata("/001"))
+print("File metadata:", dbx.files_get_metadata("/001/2test.txt"))
+try:
+	dbx.files_delete("/001/test.txt")
+except dropbox.exceptions.ApiError as e:
+	print("Error:", "not_found" in str(e))
+
+print("Folder contents:", dbx.files_list_folder("/001"))
+
 
 space_usage = dbx.users_get_space_usage()
 print("Space usage: ", space_usage)
