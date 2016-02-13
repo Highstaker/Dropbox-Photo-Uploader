@@ -105,9 +105,11 @@ class telegramHigh:
 
 		return broken
 
-	def sendMessage(self, chat_id, message, key_markup="SAME", preview=True, markdown=False, reply_to=None):
+	def sendMessage(self, chat_id, message, key_markup="SAME", keyboard_short=True, preview=True, markdown=False, reply_to=None):
 		"""
 		Sends a text message to Telegram user
+		:param keyboard_short: If True, the buttons on custom keyboard will be lower in height.
+		Might be useful if there are many rows of buttons and the kyboard fills the screen.
 		:param chat_id: ID of chat
 		:param message: text to send
 		:param key_markup: a list representing a custom keyboard markup to show to user.
@@ -126,7 +128,7 @@ class telegramHigh:
 			elif m == "SAME":
 				return None
 			else:
-				return telegram.ReplyKeyboardMarkup(m)
+				return telegram.ReplyKeyboardMarkup(m, resize_keyboard=keyboard_short)
 
 		logging.warning("Replying to " + str(chat_id) + ": " + message)
 		fulltext = self.breakLongMessage(message)
