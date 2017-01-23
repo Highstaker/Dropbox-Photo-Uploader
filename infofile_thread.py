@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 from threading import Thread
+from string import ascii_letters, punctuation, digits
 
 import dropbox
 
@@ -26,6 +27,11 @@ class InfofileThread(object):
 		try:
 			dbx.files_delete("/" + folder_name + "/" + INFO_FILE_FILENAME)
 			if recreate:
+				# TODO: this is bodging. Find a way to allow more symbols!
+				#allow only alphanumeric
+				allowed_symbols = ascii_letters + punctuation + digits
+				username = "".join(i if i in allowed_symbols else "_" for i in username)
+				comment = "".join(i if i in allowed_symbols else "_" for i in comment)
 				dbx.files_upload("Photos by " + username + "\n\n" + comment, "/" + folder_name + "/" + INFO_FILE_FILENAME)
 				bot.sendMessage(chat_id=chat_id
 							, message=lS(INFO_FILE_UPDATED_MESSAGE)
