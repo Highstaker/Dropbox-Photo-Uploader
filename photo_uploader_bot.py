@@ -18,7 +18,7 @@ from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 9, 3)
+VERSION_NUMBER = (0, 9, 4)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -63,11 +63,11 @@ Your folder is %s
 """
 							}
 
-SET_USERNAME_MESSAGE = {"EN": "Type in your name to be shown in info file.",
-"RU": "Введите своё имя для информационного файла"
+SET_USERNAME_MESSAGE = {"EN": "Type in your name to be shown in info file. Only Latin letters, numbers and common punctuation are allowed. Sorry about that.",
+"RU": "Введите своё имя для информационного файла. Разрешены только латинские буквы, цифры и пунктуация. Сожалеем об этом."
 }
-SET_COMMENT_MESSAGE = {"EN": "Type in a comment text to be shown in info file.",
-"RU": "Введите комментарий для информационного файла"
+SET_COMMENT_MESSAGE = {"EN": "Type in a comment text to be shown in info file. Only Latin letters, numbers and common punctuation are allowed. Sorry about that.",
+"RU": "Введите комментарий для информационного файла. Разрешены только латинские буквы, цифры и пунктуация. Сожалеем об этом."
 }
 
 FREE_DB_SPACE_MESSAGE = {"EN": "Free space left: %.2f GB", "RU": "Осталось свободного места: %.2f Гбайт"}
@@ -488,7 +488,7 @@ class UploaderBot(object):
 				subs.set_param(chat_id, param="username", value=message)
 				subs.set_param(chat_id, param="input_mode", value=0)
 				bot.sendMessage(chat_id=chat_id
-								, message="Username set to " + message
+								, message="Username set!"
 								, key_markup=MMKM
 								)
 				InfofileThread(bot, self.dbx, chat_id, subs.get_param(chat_id, "folder_token"),

@@ -29,7 +29,7 @@ class InfofileThread(object):
 			if recreate:
 				# TODO: this is bodging. Find a way to allow more symbols!
 				#allow only alphanumeric
-				allowed_symbols = ascii_letters + punctuation + digits
+				allowed_symbols = ascii_letters + punctuation + digits + " "
 				username = "".join(i if i in allowed_symbols else "_" for i in username)
 				comment = "".join(i if i in allowed_symbols else "_" for i in comment)
 				dbx.files_upload("Photos by " + username + "\n\n" + comment, "/" + folder_name + "/" + INFO_FILE_FILENAME)
