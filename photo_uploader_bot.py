@@ -18,7 +18,7 @@ from subscribers import SubscribersHandler
 from list_threaded_saver import ListThreadedSaver
 from tracebackprinter import full_traceback
 
-VERSION_NUMBER = (0, 9, 1)
+VERSION_NUMBER = (0, 9, 2)
 
 # The folder containing the script itself
 SCRIPT_FOLDER = path.dirname(path.realpath(__file__))
@@ -34,6 +34,7 @@ INITIAL_SUBSCRIBER_PARAMS = {"lang": "EN",  # bot's langauge
 							 "comment": ""
 							}
 
+ALLOW_FILES = False
 MAX_FILE_SIZE = 8 * 1024 * 1024
 SUPPORTED_FILE_FORMATS = ['jpg', 'jpeg', 'png', 'bmp']
 
@@ -90,16 +91,22 @@ _Автор:_ Highstaker a.k.a. OmniSable.
 """
 }
 HELP_MESSAGE = {"EN": """This bot allows you to send photos via Telegram to the storage in Dropbox. Photos of each user are put into his/her personal folder.
-You may upload an image either as a _photo_ or as a _file_. 
-
+"""
++
+("""You may upload an image either as a _photo_ or as a _file_. """ if ALLOW_FILES else "")
++
+"""
 *Uploading as a photo*
 In this mode photos are compressed, so they are uploaded much faster. But, due to compression photos lose some quality, along with their original filenames and metadata.
-
+"""
++
+("""
 *Uploading as a file*
 File upload allows you to save picture as-is, preserving its full quality, filename and metadata. Note that most modern cameras take photos several megabytes large. Uploading many photos in file mode is slow and also increases load on storage and bot. *Please, don't abuse!*
 Currently, the maximum size of a photo is {:.1f} MB.
-Accepted file formats are: {}
-
+Accepted file formats are: {}""".format(MAX_FILE_SIZE/1024**2,", ".join(SUPPORTED_FILE_FORMATS)) if ALLOW_FILES else "")
++
+"""
 *Accessing storage*
 To get link to photo storage, press the `{}` button. It also displays the name of your personal folder.
 To get the amount of remaining free space in storage, press the `{}` button. 
@@ -140,6 +147,10 @@ WRONG_FILE_FORMAT_MESSAGE = {"EN": "Wrong file format. Supported formats are: {0
 
 FILE_TOO_BIG_MESSAGE = {"EN": "File is too big. Maximum size is {:.1f} MB",
 "RU": "Файл слишком большой. Максимальный размер файла: {:.1f} MB"
+}
+
+FILES_NOT_ALLOWED_MESSAGE = {"EN": "Sending pictures as files is not allowed. Please send them as photos.",
+"RU": "Отправлять файлы не разрешено. Пожалуйста, отправьте изображения в виде фотографий."
 }
 
 MAIN_MENU_KEY_MARKUP = [
@@ -379,7 +390,7 @@ class UploaderBot(object):
 							)
 		elif message == "/help" or message == lS(HELP_BUTTON):
 			bot.sendMessage(chat_id=chat_id
-							, message=lS(HELP_MESSAGE).format(MAX_FILE_SIZE/1024**2, ", ".join(SUPPORTED_FILE_FORMATS), lS(DB_STORAGE_LINK_BUTTON), lS(FREE_DB_SPACE_BUTTON))
+							, message=lS(HELP_MESSAGE).format(lS(DB_STORAGE_LINK_BUTTON), lS(FREE_DB_SPACE_BUTTON))
 							, key_markup=MMKM
 							, markdown=True
 							)
@@ -442,29 +453,35 @@ class UploaderBot(object):
 			print("Sending params to thread on message. photo")  # debug
 			sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
 		elif bot.isDocument(u):
-			try:
-				# check supported file formats
-				if not (bot.getFileExt(u, no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
+			if ALLOW_FILES:
+				try:
+					# check supported file formats
+					if not (bot.getFileExt(u, no_dot=True).lower() in SUPPORTED_FILE_FORMATS):
+						bot.sendMessage(chat_id=chat_id
+										, message=lS(WRONG_FILE_FORMAT_MESSAGE).format(", ".join(
+										SUPPORTED_FILE_FORMATS))
+										, reply_to=message_id
+										)
+					# limit filesize
+					elif bot.getFileSize(u) > MAX_FILE_SIZE:
+						bot.sendMessage(chat_id=chat_id
+										, message=lS(FILE_TOO_BIG_MESSAGE).format(MAX_FILE_SIZE / 1024 ** 2)
+										, reply_to=message_id
+										)
+					else:
+						print("Sending params to thread on message. Document")  # debug
+						sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
+				except TelegramError:
+					logging.error("Could not process file.\n" + full_traceback())
 					bot.sendMessage(chat_id=chat_id
-									, message=lS(WRONG_FILE_FORMAT_MESSAGE).format(", ".join(
-									SUPPORTED_FILE_FORMATS))
+									, message="Failed to process file"
 									, reply_to=message_id
 									)
-				# limit filesize
-				elif bot.getFileSize(u) > MAX_FILE_SIZE:
-					bot.sendMessage(chat_id=chat_id
-									, message=lS(FILE_TOO_BIG_MESSAGE).format(MAX_FILE_SIZE / 1024 ** 2)
-									, reply_to=message_id
-									)
-				else:
-					print("Sending params to thread on message. Document")  # debug
-					sendParamsToThread(bot=bot, update=u, chat_id=chat_id, message_id=message_id)
-			except TelegramError:
-				logging.error("Could not process file.\n" + full_traceback())
+			else:
 				bot.sendMessage(chat_id=chat_id
-								, message="Failed to process file"
-								, reply_to=message_id
-								)
+						, message=lS(FILES_NOT_ALLOWED_MESSAGE)
+						, reply_to=message_id
+						)
 		else:
 			if subs.get_param(chat_id,"input_mode") == 1:
 				# Username input mode

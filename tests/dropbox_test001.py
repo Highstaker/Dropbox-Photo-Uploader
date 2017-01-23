@@ -25,8 +25,12 @@ random_folder_name = hex(getrandbits(128))[2:]
 # 				 , autorename=True
 # 				 )
 
-print("Root metadata:", dbx.files_get_metadata("/001"))
-print("File metadata:", dbx.files_get_metadata("/001/2test.txt"))
+# print("Root metadata:", dbx.files_get_metadata("/001"))
+# print("File metadata:", dbx.files_get_metadata("/001/2test.txt"))
+print("Root metadata:", dbx.files_get_metadata("/test.txt"))
+print("File metadata:", dbx.files_get_metadata("/test.txt"))
+
+
 try:
 	dbx.files_delete("/001/test.txt")
 except dropbox.exceptions.ApiError as e:
